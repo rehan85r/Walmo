@@ -2,6 +2,8 @@ import { MemWal } from "@mysten-incubation/memwal";
 
 export default async function handler(req, res) {
   try {
+    console.log("Starting Walrus Memory health test...");
+
     const memwal = MemWal.create({
       key: process.env.MEMWAL_PRIVATE_KEY,
       accountId: process.env.MEMWAL_ACCOUNT_ID,
@@ -11,37 +13,24 @@ export default async function handler(req, res) {
       namespace: "walrus-mind"
     });
 
-    console.log("Checking Walrus Memory...");
+    console.log("MemWal client created.");
 
     const health = await memwal.health();
 
-    const memoryText =
-      "My name is Rehan and I am building Walrus Mind. I like Web3 and crypto.";
-
-    const job = await memwal.remember(memoryText);
-
-    await memwal.waitForRememberJob(job.job_id);
-
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const result = await memwal.recall({
-      query: "What is the user's name and what does the user like?",
-      limit: 5
-    });
+    console.log("Walrus Memory health:", health);
 
     return res.status(200).json({
       success: true,
-      message: "Walrus Mind memory test successful!",
-      health: health,
-      remembered: memoryText,
-      recalled: result.results || []
+      message: "Walrus Memory relayer is reachable.",
+      health
     });
   } catch (error) {
-    console.error(error);
+    console.error("Walrus Memory test failed:", error);
 
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      name: error.name
     });
   }
 }
