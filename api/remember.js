@@ -14,20 +14,17 @@ export default async function handler(req, res) {
     const memory =
       "My name is Rehan and I am building Walrus Mind. I like Web3 and crypto.";
 
-    console.log("Saving memory...");
+    console.log("Submitting memory...");
 
     const job = await memwal.remember(memory);
 
-    console.log("Memory job created:", job.job_id);
-
-    await memwal.waitForRememberJob(job.job_id);
-
-    console.log("Memory saved successfully.");
+    console.log("Memory job accepted:", job.job_id);
 
     return res.status(200).json({
       success: true,
-      message: "Memory saved successfully.",
+      message: "Memory job accepted by Walrus Memory.",
       job_id: job.job_id,
+      status: job.status,
       memory
     });
   } catch (error) {
