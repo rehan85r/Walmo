@@ -1,0 +1,12 @@
+{
+  "name": "walrus-mind",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:memory": "node test-memory.mjs"
+  },
+  "dependencies": {
+    "@mysten-incubation/memwal": "latest"
+  }
+}
