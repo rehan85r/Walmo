@@ -1,22 +1,10 @@
 import { MemWal } from "@mysten-incubation/memwal";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: "Method not allowed"
-    });
-  }
-
   try {
-    const { namespace } = req.body || {};
-
-    if (!namespace) {
-      return res.status(400).json({
-        success: false,
-        error: "Namespace is required"
-      });
-    }
+    const namespace =
+      req.query?.namespace ||
+      "walmo-anon_4968fc26645a4a109ece976f972829e8";
 
     const memwal = MemWal.create({
       key: process.env.MEMWAL_PRIVATE_KEY,
