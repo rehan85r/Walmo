@@ -30,7 +30,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Separate namespace for each user
     const namespace = getNamespace(identity);
 
     const memwal = MemWal.create({
@@ -56,7 +55,7 @@ export default async function handler(req, res) {
           .join("\n")
       : "No relevant memories found.";
 
-    // Prepare Gemini conversation
+    // Send memories + conversation to Gemini
     const messages = [
       {
         role: "system",
@@ -76,7 +75,7 @@ Never claim to remember something that is not present in the provided memories.`
       }
     ];
 
-    // Ask Gemini through OpenRouter
+    // Gemini 2.5 Flash through OpenRouter
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -106,26 +105,49 @@ Never claim to remember something that is not present in the provided memories.`
       data?.choices?.[0]?.message?.content ||
       "I couldn't generate a response.";
 
-    // Save memory and wait until the Walrus write is complete
+    // Save memory and wait for the actual Walrus write
     let memoryJobId = null;
     let memoryBlobId = null;
     let memorySaved = false;
 
     try {
-      const stored = await memwal.rememberAndWait(
+      const job = await memwal.remember(
         `User said: ${message}\nAssistant replied: ${reply}`
       );
 
-      memoryJobId = stored.id || null;
-      memoryBlobId = stored.blob_id || null;
+      memoryJobId = job.job_id;
+
+      console.log("Memory job accepted:", {
+        namespace,
+        jobId: memoryJobId,
+        status: job.status
+      });
+
+      const stored = await memwal.waitForRememberJob(
+        job.job_id,
+        {
+          pollIntervalMs: 750,
+          timeoutMs: 30000
+        }
+      );
+
+      memoryBlobId = stored.blob_id;
       memorySaved = true;
 
       console.log("Memory saved successfully:", {
         namespace,
-        blobId: memoryBlobId
+        jobId: stored.job_id,
+        blobId: stored.blob_id,
+        owner: stored.owner
       });
+
     } catch (memoryError) {
-      console.error("Memory save failed:", memoryError);
+      console.error("Memory save failed:", {
+        message: memoryError?.message,
+        name: memoryError?.name,
+        cause: memoryError?.cause,
+        stack: memoryError?.stack
+      });
     }
 
     return res.status(200).json({
