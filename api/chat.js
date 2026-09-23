@@ -1,5 +1,17 @@
 import { MemWal } from "@mysten-incubation/memwal";
 
+function getNamespace(identity) {
+  const safe = String(identity || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 80);
+
+  return safe
+    ? `walmo-${safe}`
+    : "walmo-anonymous";
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -9,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, history = [] } = req.body || {};
+    const { message, history = [], identity } = req.body || {};
 
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -18,16 +30,19 @@ export default async function handler(req, res) {
       });
     }
 
+    // Separate Walrus Memory namespace for each user
+    const namespace = getNamespace(identity);
+
     const memwal = MemWal.create({
       key: process.env.MEMWAL_PRIVATE_KEY,
       accountId: process.env.MEMWAL_ACCOUNT_ID,
       serverUrl:
         process.env.MEMWAL_SERVER_URL ||
         "https://relayer.memory.walrus.xyz",
-      namespace: "walrus-mind"
+      namespace
     });
 
-    // 1. Recall relevant memories
+    // Recall this user's relevant memories
     const memoryResult = await memwal.recall({
       query: message,
       limit: 5
@@ -36,14 +51,16 @@ export default async function handler(req, res) {
     const memories = memoryResult.results || [];
 
     const memoryContext = memories.length
-      ? memories.map((memory) => `- ${memory.text}`).join("\n")
+      ? memories
+          .map((memory) => `- ${memory.text}`)
+          .join("\n")
       : "No relevant memories found.";
 
-    // 2. Build conversation
+    // Send memories + conversation to Gemini
     const messages = [
       {
         role: "system",
-        content: `You are Walrus Mind, a personal AI assistant that remembers the user.
+        content: `You are Walmo, a personal AI assistant that remembers the user.
 
 Use the following memories when they are relevant:
 
@@ -59,13 +76,12 @@ Never claim to remember something that is not present in the provided memories.`
       }
     ];
 
-    // 3. Generate AI response
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -89,14 +105,14 @@ Never claim to remember something that is not present in the provided memories.`
       data?.choices?.[0]?.message?.content ||
       "I couldn't generate a response.";
 
-    // 4. Save conversation to Walrus Memory
-    const memoryToSave =
-      `User said: ${message}\nAssistant replied: ${reply}`;
-
+    // Save this conversation to the same user's namespace
     let memoryJobId = null;
 
     try {
-      const job = await memwal.remember(memoryToSave);
+      const job = await memwal.remember(
+        `User said: ${message}\nAssistant replied: ${reply}`
+      );
+
       memoryJobId = job.job_id;
     } catch (memoryError) {
       console.error("Memory save failed:", memoryError);
@@ -106,7 +122,8 @@ Never claim to remember something that is not present in the provided memories.`
       success: true,
       reply,
       memoriesUsed: memories,
-      memoryJobId
+      memoryJobId,
+      namespace
     });
 
   } catch (error) {
