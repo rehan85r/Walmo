@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Separate Walrus Memory namespace for each user
+    // Separate namespace for each user
     const namespace = getNamespace(identity);
 
     const memwal = MemWal.create({
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       namespace
     });
 
-    // Recall this user's relevant memories
+    // Recall this user's memories
     const memoryResult = await memwal.recall({
       query: message,
       limit: 5
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
           .join("\n")
       : "No relevant memories found.";
 
-    // Send memories + conversation to Gemini
+    // Prepare Gemini conversation
     const messages = [
       {
         role: "system",
@@ -76,6 +76,7 @@ Never claim to remember something that is not present in the provided memories.`
       }
     ];
 
+    // Ask Gemini through OpenRouter
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -105,15 +106,24 @@ Never claim to remember something that is not present in the provided memories.`
       data?.choices?.[0]?.message?.content ||
       "I couldn't generate a response.";
 
-    // Save this conversation to the same user's namespace
+    // Save memory and wait until the Walrus write is complete
     let memoryJobId = null;
+    let memoryBlobId = null;
+    let memorySaved = false;
 
     try {
-      const job = await memwal.remember(
+      const stored = await memwal.rememberAndWait(
         `User said: ${message}\nAssistant replied: ${reply}`
       );
 
-      memoryJobId = job.job_id;
+      memoryJobId = stored.id || null;
+      memoryBlobId = stored.blob_id || null;
+      memorySaved = true;
+
+      console.log("Memory saved successfully:", {
+        namespace,
+        blobId: memoryBlobId
+      });
     } catch (memoryError) {
       console.error("Memory save failed:", memoryError);
     }
@@ -122,7 +132,9 @@ Never claim to remember something that is not present in the provided memories.`
       success: true,
       reply,
       memoriesUsed: memories,
+      memorySaved,
       memoryJobId,
+      memoryBlobId,
       namespace
     });
 
