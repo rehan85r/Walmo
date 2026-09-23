@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions";
 import { MemWal } from "@mysten-incubation/memwal";
 
 function getNamespace(identity) {
@@ -12,6 +13,56 @@ function getNamespace(identity) {
     : "walmo-anonymous";
 }
 
+function createMemWal(namespace) {
+  return MemWal.create({
+    key: process.env.MEMWAL_PRIVATE_KEY,
+    accountId: process.env.MEMWAL_ACCOUNT_ID,
+    serverUrl:
+      process.env.MEMWAL_SERVER_URL ||
+      "https://relayer.memory.walrus.xyz",
+    namespace
+  });
+}
+
+async function saveMemory(namespace, message, reply) {
+  try {
+    const memwal = createMemWal(namespace);
+
+    const job = await memwal.remember(
+      `User said: ${message}\nAssistant replied: ${reply}`
+    );
+
+    console.log("Memory job accepted:", {
+      namespace,
+      jobId: job.job_id,
+      status: job.status
+    });
+
+    const stored = await memwal.waitForRememberJob(
+      job.job_id,
+      {
+        pollIntervalMs: 1500,
+        timeoutMs: 60000
+      }
+    );
+
+    console.log("Memory saved successfully:", {
+      namespace,
+      jobId: stored.job_id,
+      blobId: stored.blob_id,
+      owner: stored.owner
+    });
+
+  } catch (memoryError) {
+    console.error("Memory save failed:", {
+      message: memoryError?.message,
+      name: memoryError?.name,
+      cause: memoryError?.cause,
+      stack: memoryError?.stack
+    });
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -21,7 +72,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, history = [], identity } = req.body || {};
+    const {
+      message,
+      history = [],
+      identity
+    } = req.body || {};
 
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -32,16 +87,8 @@ export default async function handler(req, res) {
 
     const namespace = getNamespace(identity);
 
-    const memwal = MemWal.create({
-      key: process.env.MEMWAL_PRIVATE_KEY,
-      accountId: process.env.MEMWAL_ACCOUNT_ID,
-      serverUrl:
-        process.env.MEMWAL_SERVER_URL ||
-        "https://relayer.memory.walrus.xyz",
-      namespace
-    });
+    const memwal = createMemWal(namespace);
 
-    // Recall this user's memories
     const memoryResult = await memwal.recall({
       query: message,
       limit: 5
@@ -74,7 +121,6 @@ Never claim to remember something that is not present in the provided memories.`
       }
     ];
 
-    // Gemini 2.5 Flash through OpenRouter
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -87,85 +133,203 @@ Never claim to remember something that is not present in the provided memories.`
           model: "google/gemini-2.5-flash",
           messages,
           temperature: 0.7,
-          max_tokens: 500
+          max_tokens: 500,
+          stream: true
         })
       }
     );
 
-    const data = await response.json();
-
     if (!response.ok) {
+      const errorText = await response.text();
+
       throw new Error(
-        data?.error?.message || "AI request failed"
+        errorText || "AI request failed"
       );
     }
 
-    const reply =
-      data?.choices?.[0]?.message?.content ||
-      "I couldn't generate a response.";
+    if (!response.body) {
+      throw new Error("AI response stream is unavailable.");
+    }
 
-    // Save memory and wait for the Walrus write to complete
-    let memoryJobId = null;
-    let memoryBlobId = null;
-    let memorySaved = false;
+    res.statusCode = 200;
 
-    try {
-      const job = await memwal.remember(
-        `User said: ${message}\nAssistant replied: ${reply}`
-      );
+    res.setHeader(
+      "Content-Type",
+      "text/event-stream; charset=utf-8"
+    );
 
-      memoryJobId = job.job_id;
+    res.setHeader(
+      "Cache-Control",
+      "no-cache, no-transform"
+    );
 
-      console.log("Memory job accepted:", {
-        namespace,
-        jobId: memoryJobId,
-        status: job.status
+    res.setHeader(
+      "Connection",
+      "keep-alive"
+    );
+
+    res.setHeader(
+      "X-Accel-Buffering",
+      "no"
+    );
+
+    let fullReply = "";
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, {
+        stream: true
       });
 
-      // Wait up to 60 seconds for the memory write
-      const stored = await memwal.waitForRememberJob(
-        job.job_id,
-        {
-          pollIntervalMs: 1500,
-          timeoutMs: 60000
+      const lines = buffer.split("\n");
+
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          continue;
         }
-      );
 
-      memoryBlobId = stored.blob_id;
-      memorySaved = true;
+        if (!trimmed.startsWith("data:")) {
+          continue;
+        }
 
-      console.log("Memory saved successfully:", {
-        namespace,
-        jobId: stored.job_id,
-        blobId: stored.blob_id,
-        owner: stored.owner
-      });
+        const data = trimmed.slice(5).trim();
 
-    } catch (memoryError) {
-      console.error("Memory save failed:", {
-        message: memoryError?.message,
-        name: memoryError?.name,
-        cause: memoryError?.cause,
-        stack: memoryError?.stack
-      });
+        if (!data || data === "[DONE]") {
+          continue;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+
+          const token =
+            parsed?.choices?.[0]?.delta?.content || "";
+
+          if (!token) {
+            continue;
+          }
+
+          fullReply += token;
+
+          res.write(
+            `data: ${JSON.stringify({
+              type: "token",
+              text: token
+            })}\n\n`
+          );
+
+        } catch (parseError) {
+          console.error(
+            "Stream chunk parse failed:",
+            parseError
+          );
+        }
+      }
     }
 
-    return res.status(200).json({
-      success: true,
-      reply,
-      memoriesUsed: memories,
-      memorySaved,
-      memoryJobId,
-      memoryBlobId,
-      namespace
-    });
+    if (buffer.trim().startsWith("data:")) {
+      const data = buffer
+        .trim()
+        .slice(5)
+        .trim();
+
+      if (data && data !== "[DONE]") {
+        try {
+          const parsed = JSON.parse(data);
+
+          const token =
+            parsed?.choices?.[0]?.delta?.content || "";
+
+          if (token) {
+            fullReply += token;
+
+            res.write(
+              `data: ${JSON.stringify({
+                type: "token",
+                text: token
+              })}\n\n`
+            );
+          }
+        } catch (parseError) {
+          console.error(
+            "Final stream chunk parse failed:",
+            parseError
+          );
+        }
+      }
+    }
+
+    if (!fullReply) {
+      fullReply = "I couldn't generate a response.";
+    }
+
+    /*
+     * Save memory in the background.
+     * The user does NOT have to wait for the Walrus write.
+     */
+    waitUntil(
+      saveMemory(
+        namespace,
+        message,
+        fullReply
+      )
+    );
+
+    /*
+     * Tell frontend that the complete response
+     * has arrived and provide recalled memories.
+     */
+    res.write(
+      `data: ${JSON.stringify({
+        type: "done",
+        success: true,
+        memoriesUsed: memories
+      })}\n\n`
+    );
+
+    res.end();
 
   } catch (error) {
     console.error("Chat failed:", error);
 
+    /*
+     * If streaming has already started, send the error
+     * through SSE instead of trying to send JSON.
+     */
+    if (res.headersSent) {
+      res.write(
+        `data: ${JSON.stringify({
+          type: "error",
+          success: false,
+          error:
+            error?.message ||
+            "Something went wrong."
+        })}\n\n`
+      );
+
+      res.end();
+
+      return;
+    }
+
     return res.status(500).json({
       success: false,
-      error: error.message
+      error:
+        error?.message ||
+        "Something went wrong."
     });
   }
 }
