@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walmo — AI That Remembers What Matters</title>
+  <script>
+  /* Capture all shadow roots (including closed roots) so the wallet modal label can be customized. */
+  (function(){
+    window.__walrusShadowRoots = window.__walrusShadowRoots || [];
+    var originalAttachShadow = Element.prototype.attachShadow;
+    if (!Element.prototype.__walrusAttachShadowPatched) {
+      Element.prototype.attachShadow = function(init){
+        var root = originalAttachShadow.call(this, init);
+        try { window.__walrusShadowRoots.push(root); } catch(e) {}
+        return root;
+      };
+      Element.prototype.__walrusAttachShadowPatched = true;
+    }
+  })();
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f7f8fc;color:#111827;min-height:100vh}
+    .app{width:100%;max-width:900px;margin:auto;height:100dvh;min-height:100svh;display:flex;flex-direction:column;overflow:hidden}
+    header{height:72px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e9ef;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);position:sticky;top:0;z-index:20}
+    .brand{display:flex;align-items:center;gap:11px}.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6335df,#7b45ed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;font-weight:800;box-shadow:0 7px 20px rgba(102,58,255,.22)}
+    .brand-text h1{font-size:17px;font-weight:800;letter-spacing:-.3px}.brand-text p{font-size:11px;color:#8a91a0;margin-top:2px}
+    .memory-status{display:flex;align-items:center;gap:6px;font-size:11px;color:#667085;background:#eee9ff;padding:7px 20px;border-radius:20px;white-space:nowrap}.status-dot{width:7px;height:7px;border-radius:50%;background:#6335df;box-shadow:0 0 0 4px rgba(99,53,223,.08)}
+    main{flex:1;min-height:0;padding:8px 16px 12px;display:flex;flex-direction:column;overflow:hidden}.hero{text-align:center;padding:15px 20px 18px;flex:0 0 auto}.hero-badge{display:inline-flex;align-items:center;gap:6px;background:#eee9ff;color:#6335df;padding:15px 12px;border-radius:20px;font-size:11px;font-weight:800;margin-bottom:15px}
+    .hero h2{font-size:clamp(31px,8vw,46px);line-height:1.05;letter-spacing:-1.8px;margin-bottom:13px;font-weight:800}.hero h2 span{color:#6335df}.hero p{max-width:540px;margin:auto;color:#737b8c;font-size:14px;line-height:1.65}
+    .chat-card{flex:1;min-height:0;background:#fff;border:1px solid #e7e9ef;border-radius:22px;box-shadow:0 12px 40px rgba(30,35,50,.06);display:flex;flex-direction:column;overflow:hidden}
+    .chat-top{padding:14px 16px;border-bottom:1px solid #edf0f4;display:flex;align-items:center;justify-content:space-between;gap:12px}.chat-title{font-size:13px;font-weight:800}.chat-subtitle{font-size:20px;color:#9299a8;margin-top:3px}.memory-count{font-size:20px;color:#6335df;background:#eee9ff;padding:6px 9px;border-radius:12px;white-space:nowrap}
+    .messages{flex:1;min-height:0;padding:18px 14px;overflow-y:auto;scroll-behavior:smooth}.message{display:flex;margin-bottom:14px}.message.user{justify-content:flex-end}.bubble{max-width:82%;padding:11px 14px;border-radius:17px;font-size:13px;line-height:1.5;white-space:pre-wrap}
+    .message.ai .bubble{background:#f1f2f6;color:#252a35;border-bottom-left-radius:5px}.message.user .bubble{background:linear-gradient(135deg,#6335df,#7b45ed);color:#fff;border-bottom-right-radius:5px;box-shadow:0 5px 15px rgba(99,53,223,.15)}
+    .memory-used{margin-top:6px;font-size:9px;color:#6335df;padding-left:5px}.input-area{padding:12px;border-top:1px solid #edf0f4;background:#fff}
+    .input-box{display:flex;align-items:flex-end;gap:8px;border:1px solid #dfe2e9;border-radius:17px;padding:7px;background:#fafbfc;transition:.2s}.input-box:focus-within{border-color:#6335df;box-shadow:0 0 0 3px rgba(99,53,223,.08)}
+    textarea{flex:1;border:none;outline:none;resize:none;background:transparent;padding:9px;font-family:inherit;font-size:13px;min-height:38px;max-height:100px;color:#111827}textarea::placeholder{color:#9ca3af}
+    .send-btn{width:40px;height:40px;border:none;border-radius:50%;background:#6335df;color:#fff;font-size:17px;cursor:pointer;transition:.2s;flex-shrink:0}.send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(99,53,223,.2)}.send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .hint{text-align:center;font-size:9px;color:#111827;margin-top:8px}.typing{display:flex;gap:4px;align-items:center;height:18px}.typing span{width:5px;height:5px;background:#8f95a2;border-radius:50%;animation:bounce 1s infinite}.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}footer{
+      text-align:center;
+      color:#6335df !important;
+      font-size:20px !important;
+      font-weight:800 !important;
+      line-height:16px !important;
+      padding:8px 0 !important;
+      margin:0 !important;
+      height:32px !important;
+      min-height:32px !important;
+      max-height:32px !important;
+      flex:0 0 32px !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      visibility:visible !important;
+      opacity:1 !important;
+    }
+    @media(max-width:480px){
+      header{height:60px;min-height:60px;padding:0 12px}
+      .logo{width:34px;height:34px;border-radius:20px}
+      .brand-text h1{font-size:15px}
+      .memory-status{font-size:9px;padding:6px 8px}
+      main{padding:6px 20px 6px}
+      .hero{padding:15px 6px 12px}
+      .hero-badge{font-size:20px;padding:15px 20px;margin-bottom:9px}
+      .hero h2{font-size:28px;letter-spacing:-1.2px;margin-bottom:8px}
+      .hero p{font-size:12px;line-height:1.45;max-width:340px}
+      .chat-card{border-radius:17px;min-height:0}
+      .chat-top{padding:20px 12px}
+      .chat-title{font-size:12px}
+      .chat-subtitle{font-size:9px}
+      .memory-count{font-size:9px;padding:5px 7px}
+      .messages{padding:12px 20px;min-height:0}
+      .bubble{max-width:88%;font-size:12px;padding:9px 12px}
+      .input-area{padding:8px}
+      .input-box{padding:6px;border-radius:15px}
+      textarea{font-size:12px;padding:8px;min-height:34px}
+      .send-btn{width:36px;height:36px;border-radius:11px}
+      .hint{font-size:8px;margin-top:5px}
+
+    }
+    @media(min-width:700px){
+      main{padding:8px 24px 20px;min-height:0}
+      .hero{padding:15px 20px 16px}
+      .messages{padding:18px 22px}
+      .input-area{padding:12px 16px}
+    }
+
+    @media(max-height:700px) and (max-width:600px){
+      header{height:56px;min-height:56px}
+      main{padding-top:4px;padding-bottom:4px}
+      .hero{padding:15px 5px 8px}
+      .hero-badge{margin-bottom:6px}
+      .hero h2{font-size:25px;margin-bottom:5px}
+      .hero p{font-size:11px;line-height:1.35}
+      .chat-top{padding:8px 20px}
+      .messages{padding:9px}
+      .input-area{padding:6px}
+
+    }
+
+    @media(max-width:480px){
+    }
+
+      .hint{color:#111827 !important;}
+
+    footer{
+      text-align:center !important;
+      color:#6335df !important;
+      font-size:20px !important;
+      font-weight:800 !important;
+      line-height:16px !important;
+      padding:8px 0 !important;
+      margin:0 !important;
+      height:32px !important;
+      min-height:32px !important;
+      max-height:32px !important;
+      flex:0 0 32px !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      visibility:visible !important;
+      opacity:1 !important;
+    }
+
+    .wallet-area{display:flex;align-items:center;gap:8px}
+    .wallet-wrap{display:flex;align-items:center}
+
+    .identity-pill{display:none;align-items:center;gap:5px;font-size:9px;color:#6335df;background:#eee9ff;padding:6px 9px;border-radius:12px;white-space:nowrap}
+    .identity-pill.visible{display:flex}
+    @media(max-width:480px){
+
+      .identity-pill{font-size:8px;padding:5px 7px}
+    }
+
+    /* Hero spacing */
+    .hero h1 { margin-bottom: 16px !important; }
+    .hero p { margin-top: 0 !important; margin-bottom: 15px !important; color: #000000 !important; }
+    .hero .hero-badge,
+    .hero .badge { margin-top: 0 !important; }
+
+    /* Equal hero spacing */
+    .hero {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+    }
+    .hero h1,
+    .hero p,
+    .hero .hero-badge,
+    .hero .badge {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+    .hero h1 { margin-bottom: 15px !important; }
+    .hero p { margin-bottom: 15px !important; }
+
+    /* Keep  badge compact */
+    .hero .hero-badge,
+    .hero .badge {
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+      line-height: 1.2 !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
+
+/* Force Wallet Connect to match Walmo purple theme */
+.wallet-wrap{
+  background:#6335df !important;
+  border-radius:12px !important;
+  padding:0 !important;
+  display:flex !important;
+  overflow:hidden !important;
+}
+
+/* Compact Connect Wallet button */
+.wallet-wrap mysten-dapp-kit-connect-button,
+
+.wallet-wrap{
+  height:30px !important;
+  max-height:30px !important;
+  overflow:hidden !important;
+  align-self:center !important;
+}
+
+/* White wallet connection modal, while keeping the Connect Wallet button purple */
+
+</style>
+
+<style id="chatbox-height-adjustment">
+/* Slightly shorter chat box */
+.chat-container,
+.chat-box,
+.chat-card {
+  max-height: 58vh !important;
+}
+</style>
+
+<style id="navbar-hero-gap-20px">
+.hero { padding-top: 20px !important; }
+</style>
+
+<style id="powered-by-to-chat-30px">
+.hero .badge,
+.powered-by-walrus,
+.hero-badge {
+  margin-bottom: 30px !important;
+}
+</style>
+
+<style id="powered-chat-gap-fixed">
+/* Exact 30px gap between the Powered By badge and the chat box */
+.hero {
+  margin-bottom: 20px !important;
+}
+</style>
+
+<style id="send-button-full-circle">
+.send-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  border-radius: 50% !important;
+}
+</style>
+
+<style id="input-box-exact-50px">
+.input-box {
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  box-sizing: border-box !important;
+}
+</style>
+
+<style id="send-button-centered">
+.input-box {
+  align-items: center !important;
+}
+.send-btn {
+  align-self: center !important;
+  margin: 0 !important;
+}
+</style>
+
+<style id="send-button-30px">
+.send-btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
+  border-radius: 50% !important;
+}
+</style>
+
+<style id="send-stop-round-circle">
+.send-btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+</style>
+
+<style id="send-arrow-larger-bold">
+.send-btn {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+</style>
+
+<style id="send-button-35px">
+.send-btn {
+  width: 35px !important;
+  height: 35px !important;
+  min-width: 35px !important;
+  min-height: 35px !important;
+  max-width: 35px !important;
+  max-height: 35px !important;
+  border-radius: 50% !important;
+}
+</style>
+<style id="tell-me-something-500">
+textarea {
+  font-weight: 700 !important;
+}
+</style>
+
+<style id="send-button-no-square-focus">
+.send-btn:focus,
+.send-btn:focus-visible,
+.send-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+</style>
+
+<style id="send-button-click-square-fixed">
+.send-btn,
+.send-btn:hover,
+.send-btn:focus,
+.send-btn:focus-visible,
+.send-btn:active,
+.send-btn:focus-within {
+  outline: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background-clip: padding-box !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+.send-btn::-moz-focus-inner {
+  border: 0 !important;
+  padding: 0 !important;
+}
+</style>
+
+<style id="walrus-chat-menu">
+.chat-menu-wrap{position:relative;margin-left:auto;display:flex;align-items:center}
+.chat-menu-btn{width:30px;height:30px;border:0;background:transparent;color:#6335df;border-radius:50%;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.chat-menu-btn:focus,.chat-menu-btn:focus-visible{outline:none;box-shadow:none}
+.chat-menu{display:none;position:absolute;right:0;top:36px;width:170px;background:#fff;border:1px solid #e7e9ef;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(20,20,30,.12);z-index:100}
+.chat-menu.open{display:block}
+.chat-menu button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 20px;border-radius:8px;font-family:inherit;font-size:10px;font-weight:500;color:#111827;cursor:pointer white-space:nowrap;}
+.chat-menu button:hover{background:#f5f3fb}
+</style>
+<script>
+(function () {
+  function closeMenu() {
+    const menu = document.getElementById("chatMenu");
+    if (menu) menu.classList.remove("open");
+  }
+
+  window.openSavedMemory = function () {
+    closeMenu();
+  };
+
+  window.openChatHistory = function () {
+    closeMenu();
+  };
+
+  window.deleteCurrentChat = function () {
+    if (confirm("Delete this chat?")) {
+      const messages = document.getElementById("messages");
+      if (messages) messages.innerHTML = "";
+    }
+    closeMenu();
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const button = document.getElementById("chatMenuBtn");
+    const menu = document.getElementById("chatMenu");
+
+    if (!button || !menu) return;
+
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      menu.classList.toggle("open");
+    });
+
+    menu.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("click", function () {
+      menu.classList.remove("open");
+    });
+  });
+})();
+</script>
+
+<style id="memory-menu-final">
+.chat-header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.chat-menu-wrap{position:relative;display:flex;align-items:center}
+.chat-menu-btn{width:28px;height:28px;border:0;background:transparent;color:#6335df;border-radius:6px;font-size:18px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+.chat-menu-btn:focus,.chat-menu-btn:focus-visible{outline:none;box-shadow:none}
+.chat-menu{display:none;position:absolute;right:0;top:34px;width:175px;background:#fff;border:1px solid #e7e9ef;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(20,20,30,.12);z-index:1000}
+.chat-menu.open{display:block}
+.chat-menu button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 20px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:500;color:#111827;cursor:pointer}
+.chat-menu button:hover{background:#f5f3fb}
+</style>
+<script>
+(function(){
+  window.openSavedMemory=function(){document.getElementById("chatMenu")?.classList.remove("open");};
+  window.openChatHistory=function(){document.getElementById("chatMenu")?.classList.remove("open");};
+  window.deleteCurrentChat=function(){
+    if(confirm("Delete this chat?")){
+      const el=document.getElementById("messages");
+      if(el) el.innerHTML="";
+    }
+    document.getElementById("chatMenu")?.classList.remove("open");
+  };
+  document.addEventListener("click",function(e){
+    const b=document.getElementById("chatMenuBtn"),m=document.getElementById("chatMenu");
+    if(!b||!m)return;
+    if(b.contains(e.target))m.classList.toggle("open");
+    else if(!m.contains(e.target))m.classList.remove("open");
+  });
+})();
+</script>
+
+<style id="menu-favicon-icons">
+.chat-menu button{display:flex !important;align-items:center;gap:9px !important}
+.menu-icon{
+  width:18px !important;
+  height:18px !important;
+  display:inline-block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  color:#fff !important;
+  stroke:#fff !important;
+  fill:none !important;
+  flex:0 0 18px !important;
+  margin-right:8px !important;
+  vertical-align:middle !important;
+}
+</style>
+
+<style id="menu-button-working">
+.chat-menu-wrap{position:relative !important;z-index:2000 !important}
+.chat-menu-btn{position:relative !important;z-index:2001 !important;pointer-events:auto !important;cursor:pointer !important}
+.chat-menu{z-index:2002 !important;pointer-events:auto !important}
+.chat-menu.open{display:block !important}
+</style>
+
+<style id="new-chat-button">
+.new-chat-btn{
+  height:28px;
+  border:1px solid #e7e9ef;
+  background:#fff;
+  color:#6335df;
+  border-radius:8px;
+  padding:0 9px;
+  font-family:inherit;
+  font-size:11px;
+  font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.new-chat-btn:hover{background:#f5f3fb}
+.new-chat-btn:focus,.new-chat-btn:focus-visible{outline:none;box-shadow:none}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const btn=document.getElementById("newChatBtn");
+  if(btn){
+    btn.addEventListener("click", function(){
+      const messages=document.getElementById("messages");
+      const input=document.getElementById("messageInput");
+      if(messages) messages.innerHTML="";
+      if(input) input.value="";
+    });
+  }
+});
+</script>
+
+<style>
+/* New Chat: purple background + perfectly centered content */
+.new-chat-btn{
+  height:28px !important;
+  min-height:28px !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  background:#6335df !important;
+  color:#fff !important;
+  border:1px solid #6335df !important;
+  border-radius:8px !important;
+  padding:0 9px !important;
+  line-height:1 !important;
+  font-family:inherit !important;
+  font-size:11px !important;
+  font-weight:600 !important;
+  cursor:pointer !important;
+  white-space:nowrap !important;
+}
+.new-chat-btn:hover{background:#6335df !important;color:#fff !important}
+.new-chat-btn:focus,.new-chat-btn:focus-visible{
+  outline:none !important;
+  box-shadow:none !important;
+}
+</style>
+
+<style>
+/* Move the menu button to the left side of the header */
+.chat-header-actions{
+  margin-left:0 !important;
+  margin-right:auto !important;
+}
+.chat-menu-wrap{
+  order:-1 !important;
+}
+</style>
+
+<style>
+/* Premium light-purple chat background */
+.chat-container,
+.chat-box,
+.chat-card{
+  background:#FAF9FF !important;
+}
+</style>
+
+<style>
+/* Restore clean white chat background */
+.chat-container,
+.chat-box,
+.chat-card{
+  background:#FFFFFF !important;
+}
+</style>
+
+<style>
+/* Move menu/sidebar controls back to the right */
+.chat-header-actions{
+  margin-left:auto !important;
+  margin-right:0 !important;
+}
+.chat-menu-wrap{
+  order:initial !important;
+}
+</style>
+
+<style>
+/* New Chat -> favicon-style Chat button */
+.new-chat-btn{
+  height:28px !important;
+  min-height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  padding:0 20px !important;
+  background:#6335df !important;
+  color:#fff !important;
+  border:1px solid #6335df !important;
+  border-radius:8px !important;
+  font-family:inherit !important;
+  font-size:11px !important;
+  font-weight:600 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+.new-chat-icon{
+  width:14px !important;
+  height:14px !important;
+  flex:0 0 14px !important;
+  display:block !important;
+}
+.new-chat-btn:hover{
+  background:#6335df !important;
+  color:#fff !important;
+}
+.new-chat-btn:focus,
+.new-chat-btn:focus-visible{
+  outline:none !important;
+  box-shadow:none !important;
+}
+</style>
+
+<style>
+.chat-menu button .menu-icon{
+  color:#111111 !important;
+}
+</style>
+
+<style>
+.menu-icon{
+  width:16px !important;
+  height:16px !important;
+  flex:0 0 16px !important;
+  display:block !important;
+  color:#111111 !important;
+}
+.chat-menu button .menu-icon{
+  color:#111111 !important;
+}
+</style>
+
+<style>
+/* Fresh reference-style SVG favicons */
+.menu-icon{
+  width:17px !important;
+  height:17px !important;
+  flex:0 0 17px !important;
+  display:block !important;
+  color:#111111 !important;
+  overflow:visible !important;
+}
+.chat-menu button{
+  gap:9px !important;
+}
+.chat-menu button .menu-icon{
+  color:#111111 !important;
+}
+</style>
+
+<style>
+/* Premium menu icon system */
+.chat-menu button{
+  display:flex !important;
+  align-items:center !important;
+  gap:9px !important;
+}
+.menu-icon{
+  width:18px !important;
+  height:18px !important;
+  flex:0 0 18px !important;
+  display:block !important;
+  color:#111827 !important;
+  overflow:visible !important;
+}
+.chat-menu button .menu-icon{
+  color:#111827 !important;
+}
+</style>
+
+<style>
+.menu-icon{
+  width:17px !important;
+  height:17px !important;
+  flex:0 0 17px !important;
+  display:block !important;
+  color:#111827 !important;
+  overflow:visible !important;
+}
+.chat-menu button{
+  display:flex !important;
+  align-items:center !important;
+  gap:20px !important;
+}
+</style>
+
+<style>
+.chat-menu button .menu-icon{
+  width:17px !important;
+  height:17px !important;
+  flex:0 0 17px !important;
+  color:#111111 !important;
+}
+</style>
+
+<style>
+.new-chat-icon{
+  width:14px !important;
+  height:14px !important;
+  flex:0 0 14px !important;
+  display:block !important;
+  color:currentColor !important;
+}
+.new-chat-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+}
+</style>
+
+<style>
+.new-chat-icon{
+  width:18px !important;
+  height:18px !important;
+  flex:0 0 18px !important;
+  display:block !important;
+  color:currentColor !important;
+}
+.new-chat-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:7px !important;
+}
+</style>
+
+<style>
+/* Final polished Chat pencil icon */
+.new-chat-icon{
+  width:18px !important;
+  height:18px !important;
+  flex:0 0 18px !important;
+  display:block !important;
+  color:#fff !important;
+  overflow:visible !important;
+}
+.new-chat-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:7px !important;
+}
+</style>
+
+<style>
+.new-chat-icon{
+  width:15px !important;
+  height:15px !important;
+  flex:0 0 15px !important;
+  display:block !important;
+  color:#fff !important;
+}
+.new-chat-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+}
+</style>
+
+<style id="send-button-three-states">
+.send-btn .send-state-icon{
+  display:none !important;
+  width:20px !important;
+  height:20px !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  pointer-events:none !important;
+}
+.send-btn.state-voice .send-voice-icon{display:block !important}
+.send-btn.state-ready .send-arrow-icon{display:block !important}
+.send-btn.state-generating .send-stop-icon{display:block !important}
+.send-btn .send-voice-icon,
+.send-btn .send-arrow-icon{stroke:#fff !important}
+.send-btn .send-stop-icon{fill:#fff !important}
+</style>
+
+<style>
+/* Larger waveform + more breathing room inside the send button */
+.send-voice-icon{
+  width:20px !important;
+  height:20px !important;
+}
+.send-btn{
+  gap:3px !important;
+}
+</style>
+
+<style id="remove-click-background-effects">
+/* Remove click/tap/focus background effects */
+.chat-menu-btn,
+.chat-menu-btn:hover,
+.chat-menu-btn:focus,
+.chat-menu-btn:focus-visible,
+.chat-menu-btn:active{
+  background:transparent !important;
+  box-shadow:none !important;
+  outline:none !important;
+  -webkit-tap-highlight-color:transparent !important;
+}
+
+.chat-menu button,
+.chat-menu button:hover,
+.chat-menu button:focus,
+.chat-menu button:focus-visible,
+.chat-menu button:active{
+  background:transparent !important;
+  box-shadow:none !important;
+  outline:none !important;
+  -webkit-tap-highlight-color:transparent !important;
+}
+
+.new-chat-btn,
+.new-chat-btn:hover,
+.new-chat-btn:focus,
+.new-chat-btn:focus-visible,
+.new-chat-btn:active{
+  background:#6335df !important;
+  box-shadow:none !important;
+  outline:none !important;
+  -webkit-tap-highlight-color:transparent !important;
+}
+
+.chat-menu button::-moz-focus-inner,
+.chat-menu-btn::-moz-focus-inner,
+.new-chat-btn::-moz-focus-inner{
+  border:0 !important;
+  padding:0 !important;
+}
+</style>
+
+<style id="new-chat-left-menu-right">
+.chat-header-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  width:100% !important;
+  margin-left:0 !important;
+}
+.chat-header-actions .new-chat-btn{
+  order:1 !important;
+  margin-right:auto !important;
+}
+.chat-header-actions .chat-menu-wrap{
+  order:2 !important;
+  margin-left:auto !important;
+}
+</style>
+
+<style id="new-chat-replaces-memory-used">
+.chat-header-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  width:100% !important;
+  margin:0 !important;
+  gap:8px !important;
+}
+.chat-header-actions > .new-chat-btn{
+  order:1 !important;
+  margin:0 !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  order:2 !important;
+  margin-left:auto !important;
+}
+</style>
+
+<style id="new-chat-left-gap-5px">
+.chat-top{
+  padding-left:5px !important;
+  padding-right:5px !important;
+}
+</style>
+
+<style id="header-both-sides-5px">
+.chat-top{
+  padding-left:5px !important;
+  padding-right:5px !important;
+}
+</style>
+
+<style id="new-chat-match-greeting-gap">
+/* Greeting bubble starts 9px from the chat content edge.
+   Keep the right menu at 5px, and give Chat the same 9px left offset. */
+.chat-header-actions > .new-chat-btn{
+  margin-left:4px !important;
+  margin-right:0 !important;
+}
+</style>
+
+<style id="exact-greeting-alignment">
+/* Match New Chat's left edge exactly to the greeting bubble's left edge. */
+.chat-top{
+  padding-left:20px !important;
+  padding-right:5px !important;
+}
+.chat-header-actions{
+  width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+.chat-header-actions > .new-chat-btn{
+  margin-left:0 !important;
+  margin-right:auto !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  margin-left:auto !important;
+  margin-right:0 !important;
+}
+</style>
+
+<style id="force-new-chat-9px">
+/* Force the Chat button to the same left offset as the greeting bubble. */
+.chat-top{
+  position:relative !important;
+  padding-left:0 !important;
+}
+.chat-header-actions{
+  position:static !important;
+  width:100% !important;
+  margin:0 !important;
+}
+.chat-header-actions > .new-chat-btn{
+  position:absolute !important;
+  left:20px !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  margin:0 !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  margin-left:auto !important;
+  margin-right:5px !important;
+}
+</style>
+
+<style id="fix-chat-button-header-20px">
+/* Header: 20px from top border and 20px from bottom divider. */
+.chat-top{
+  position:relative !important;
+  box-sizing:border-box !important;
+  padding:20px 20px !important;
+  min-height:48px !important;
+  height:auto !important;
+}
+
+/* Keep Chat button inside the header; remove the previous absolute/vertical offsets. */
+.chat-header-actions{
+  position:static !important;
+  transform:none !important;
+  width:100% !important;
+  height:28px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+}
+
+.chat-header-actions > .new-chat-btn{
+  position:static !important;
+  transform:none !important;
+  left:auto !important;
+  top:auto !important;
+  margin:0 !important;
+  height:28px !important;
+  min-height:28px !important;
+}
+
+.chat-header-actions > .chat-menu-wrap{
+  margin:0 !important;
+  height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+}
+</style>
+
+<style id="chat-button-left-gap-20px">
+.chat-header-actions > .new-chat-btn{
+  margin-left:0 !important;
+}
+.chat-header-actions{
+  padding-left:0 !important;
+}
+</style>
+
+<style id="exact-header-20px-final">
+/* Exact 20px spacing from the chat-card border on both sides. */
+.chat-top{
+  position:relative !important;
+  box-sizing:border-box !important;
+  height:48px !important;
+  min-height:48px !important;
+  padding:20px 20px 20px 10px !important;
+  display:block !important;
+}
+
+.chat-top > div:first-child{
+  display:none !important;
+}
+
+.chat-header-actions{
+  position:relative !important;
+  width:100% !important;
+  height:28px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:block !important;
+}
+
+.chat-header-actions > .new-chat-btn{
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  margin:0 !important;
+  transform:none !important;
+  height:28px !important;
+  min-height:28px !important;
+}
+
+.chat-header-actions > .chat-menu-wrap{
+  position:absolute !important;
+  right:0 !important;
+  top:0 !important;
+  margin:0 !important;
+  height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+}
+</style>
+
+<style id="chat-header-height-50px">
+.chat-top{
+  height:50px !important;
+  min-height:50px !important;
+  box-sizing:border-box !important;
+}
+</style>
+
+<style id="new-chat-vertical-center">
+.chat-top{
+  height:50px !important;
+  min-height:50px !important;
+  box-sizing:border-box !important;
+  padding:20px !important;
+}
+.chat-header-actions{
+  position:relative !important;
+  width:100% !important;
+  height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.chat-header-actions > .new-chat-btn{
+  position:absolute !important;
+  left:0 !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  margin:0 !important;
+  height:30px !important;
+  min-height:30px !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  position:absolute !important;
+  right:0 !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  margin:0 !important;
+  height:30px !important;
+  display:flex !important;
+  align-items:center !important;
+}
+</style>
+
+<style id="FINAL-new-chat-true-center">
+.chat-top{
+  height:50px !important;
+  min-height:50px !important;
+  max-height:50px !important;
+  padding:20px !important;
+  box-sizing:border-box !important;
+  position:relative !important;
+}
+.chat-header-actions{
+  position:relative !important;
+  width:100% !important;
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:block !important;
+  transform:none !important;
+}
+.chat-header-actions > .new-chat-btn{
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  width:auto !important;
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding-top:0 !important;
+  padding-bottom:0 !important;
+  transform:none !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  position:absolute !important;
+  right:0 !important;
+  top:0 !important;
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  transform:none !important;
+  display:flex !important;
+  align-items:center !important;
+}
+.chat-header-actions > .chat-menu-wrap > .chat-menu-btn{
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+</style>
+
+<style id="PERFECT-new-chat-center">
+.chat-top{
+  height:50px !important;
+  min-height:50px !important;
+  max-height:50px !important;
+  box-sizing:border-box !important;
+  padding:20px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:stretch !important;
+  position:relative !important;
+}
+.chat-top > div:first-child{
+  display:none !important;
+}
+.chat-header-actions{
+  position:static !important;
+  width:100% !important;
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  transform:none !important;
+}
+.chat-header-actions > .new-chat-btn{
+  position:static !important;
+  left:auto !important;
+  top:auto !important;
+  transform:none !important;
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding-top:0 !important;
+  padding-bottom:0 !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  position:static !important;
+  right:auto !important;
+  top:auto !important;
+  transform:none !important;
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+}
+.chat-header-actions > .chat-menu-wrap > .chat-menu-btn{
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+</style>
+
+<style id="menu-bar-vertical-center-only">
+/* Keep everything else unchanged; center only the 3-line menu button
+   using the same 50px header / 30px control geometry as Chat. */
+.chat-header-actions > .chat-menu-wrap{
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+}
+.chat-header-actions > .chat-menu-wrap > .chat-menu-btn{
+  height:30px !important;
+  min-height:30px !important;
+  max-height:30px !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+}
+</style>
+
+<style id="menu-lines-bold-only">
+.chat-menu-btn{
+  font-weight:900 !important;
+}
+</style>
+
+<style id="only-menu-right-gap-20px">
+.chat-header-actions > .chat-menu-wrap{
+  margin-right:20px !important;
+}
+</style>
+
+<style id="only-menu-dropdown-corner-position">
+.chat-header-actions > .chat-menu-wrap{
+  position:relative !important;
+}
+.chat-header-actions > .chat-menu-wrap > .chat-menu{
+  position:absolute !important;
+  right:0 !important;
+  left:auto !important;
+  top:calc(100% + 3px) !important;
+  margin:0 !important;
+}
+</style>
+
+<style id="only-menu-bar-exact-20px-gaps">
+.chat-header-actions > .chat-menu-wrap{
+  position:absolute !important;
+  right:0 !important;
+  left:auto !important;
+  top:0 !important;
+  margin:0 !important;
+  width:30px !important;
+  height:30px !important;
+  min-width:30px !important;
+  min-height:30px !important;
+  max-width:30px !important;
+  max-height:30px !important;
+  transform:none !important;
+}
+</style>
+
+<style id="only-menu-bar-top-20px">
+.chat-top{
+  position:relative !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  position:absolute !important;
+  top:20px !important;
+  right:0 !important;
+  left:auto !important;
+  margin:0 !important;
+  width:30px !important;
+  height:30px !important;
+  min-width:30px !important;
+  min-height:30px !important;
+  max-width:30px !important;
+  max-height:30px !important;
+  transform:none !important;
+}
+</style>
+
+<style id="only-hide-wallet-identity-pill">
+.identity-pill,
+.identity-pill.visible{
+  display:none !important;
+}
+</style>
+
+<style id="only-footer-font-size-20px">
+footer{
+  font-size:15px !important;
+}
+</style>
+
+<style id="only-menu-items-font-15px">
+.chat-menu button{
+  font-size:15px !important;
+}
+</style>
+
+<style id="only-menu-items-weight-700">
+.chat-menu button{
+  font-weight:700 !important;
+}
+</style>
+
+<style id="only-menu-items-weight-600">
+.chat-menu button{
+  font-weight:600 !important;
+}
+</style>
+
+<style id="wallet-button-fresh">
+.wallet-area{
+  display:flex;
+  align-items:center;
+}
+.wallet-wrap{
+  display:flex;
+  align-items:center;
+}
+.wallet-wrap mysten-dapp-kit-connect-button{
+  display:block !important;
+  width:100% !important;
+  height:40px !important;
+  min-height:40px !important;
+  max-height:40px !important;
+  margin:0 !important;
+  padding:0 !important;
+  position:relative !important;
+  --dapp-kit-connect-button-bg:#6335df !important;
+  --dapp-kit-connect-button-background:#6335df !important;
+--background:#ffffff !important;
+  --bg:#ffffff !important;
+  --primary:#6335df !important;
+  --foreground:#111111 !important;
+  --popover:#ffffff !important;
+  --popover-foreground:#111111 !important;
+  --card:#ffffff !important;
+  --card-foreground:#111111 !important;}
+.wallet-wrap mysten-dapp-kit-connect-button::part(button){
+  width:100% !important;
+  height:100% !important;
+  margin:0 !important;
+  padding:0 16px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+  text-align:center !important;
+color:#fff !important;
+  border-color:#6335df !important;
+  border-radius:12px !important;
+  font-size:15px !important;
+  font-weight:1000 !important;
+  background:#6335df !important;
+}
+.wallet-wrap mysten-dapp-kit-connect-button > span{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  height:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1 !important;
+  text-align:center !important;
+}
+</style>
+
+<style id="absolute-menu-icon-fix">
+.menu-dropdown .menu-icon,
+.menu-bar .menu-icon,
+.menu-options .menu-icon,
+.menu-menu .menu-icon,
+button .menu-icon{
+  display:inline-block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  width:18px !important;
+  height:18px !important;
+  color:#fff !important;
+  stroke:#fff !important;
+}
+</style>
+
+<style id="menu-labels-one-line-final">
+.chat-menu#chatMenu{
+  width:150px !important;
+  min-width:150px !important;
+  box-sizing:border-box !important;
+  height:115px !important;
+
+}
+.chat-menu#chatMenu button{
+  width:100% !important;
+  min-width:0 !important;
+  height:34px !important;
+  padding:0 10px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  flex-wrap:nowrap !important;
+  gap:8px !important;
+  white-space:nowrap !important;
+  word-break:normal !important;
+  overflow-wrap:normal !important;
+  font-size:10px !important;
+  font-weight:600 !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
+}
+.chat-menu#chatMenu button .menu-icon{
+  flex:0 0 18px !important;
+  width:18px !important;
+  height:18px !important;
+  margin:0 !important;
+}
+</style>
+<style id="menu-icons-visible-final">
+.chat-menu#chatMenu .menu-icon{
+  display:inline-block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  width:18px !important;
+  height:18px !important;
+  flex:0 0 18px !important;
+  color:#6335df !important;
+  stroke:#6335df !important;
+  fill:none !important;
+  margin:0 !important;
+}
+.chat-menu#chatMenu .menu-icon *{
+  stroke:#6335df !important;
+}
+</style>
+<style id="header-vertical-center-final">
+.chat-top{
+  display:flex !important;
+  align-items:center !important;
+}
+.chat-header-actions{
+  align-items:center !important;
+}
+.chat-header-actions > .chat-menu-wrap{
+  top:50% !important;
+  transform:translateY(-50%) !important;
+}
+</style>
+<style id="new-chat-left-gap-final">
+.chat-top{
+  padding-left:10px !important;
+}
+</style>
+<style id="new-chat-width-50-final">
+.new-chat-btn{
+  width:70px !important;
+  min-width:70px !important;
+  max-width:70px !important;
+  box-sizing:border-box !important;
+}
+</style>
+<style id="walmo-wallet-icon-only">
+.walmo-wallet-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 20px;}
+.walmo-wallet-icon svg{width:20px;height:20px;display:block;}
+</style>
+<style id="walmo-legal-pages">
+.walmo-legal-overlay{position:fixed;inset:0;background:#fff;z-index:99999;display:none;overflow:auto;padding:28px 20px 40px;box-sizing:border-box}
+.walmo-legal-overlay.open{display:block}
+.walmo-legal-inner{max-width:760px;margin:0 auto;color:#111827;font-family:inherit;line-height:1.6}
+.walmo-legal-close{border:0;background:#6335df;color:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;margin-bottom:20px}
+.walmo-legal-inner h2{color:#6335df;margin:0 0 12px}
+.walmo-legal-inner h3{font-size:15px;margin:20px 0 6px}
+.walmo-legal-inner p{font-size:13px;margin:6px 0}
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo">W</div>
+        <div class="brand-text"><h1>Walmo</h1></div>
+      </div>
+
+      <div class="wallet-area">
+        <div class="wallet-wrap">
+          <mysten-dapp-kit-connect-button id="walletButton">
+            <span class="walmo-wallet-icon" aria-hidden="true">
+  <svg viewBox="0 0 24 24">
+    <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a1 1 0 0 1 1 1v2H7a2 2 0 0 0 0 4h13v6a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 16.5v-9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M20 8H7a2 2 0 0 0 0 4h13V8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="16.5" cy="10" r="1" fill="currentColor"/>
+  </svg>
+</span>
+<span>Connect</span>
+          </mysten-dapp-kit-connect-button>
+        </div>
+      </div>
+    </header>
+    <main>
+      <section class="hero">
+
+        <h2>Your AI<br><span>Your Memory</span></h2>
+        <p>Walmo AI That Remembers What Matters</p>
+      </section>
+      <section class="chat-card">
+        <div class="chat-top">
+          <div></div>
+          <div class="chat-header-actions">
+            <button class="new-chat-btn" id="newChatBtn" type="button" aria-label="Chat">
+  <svg class="new-chat-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M5.5 18.5h3.2L19 8.2a2.1 2.1 0 0 0 0-3l-.2-.2a2.1 2.1 0 0 0-3 0L5.5 15.3v3.2Z"
+      fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="m13.8 6.8 3.4 3.4"
+      fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <span>Chat</span>
+</button>
+            <div class="chat-menu-wrap">
+              <button class="chat-menu-btn" id="chatMenuBtn" aria-label="Chat menu" type="button">☰</button>
+              <div class="chat-menu" id="chatMenu">
+                <button type="button" onclick="openSavedMemory()">
+          <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l1 3h3v13H5V7h3l1-3Z" fill="none" stroke="#6335df" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 11h6M9 15h4" fill="none" stroke="#6335df" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Saved Memory
+        </button>
+                <button type="button" onclick="openChatHistory()">
+          <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.2 8.1A7.5 7.5 0 1 1 7.6 16"
+              fill="none" stroke="#6335df" stroke-width="1.9" stroke-linecap="round"/>
+            <path d="M6.2 4.9v3.2h3.2"
+              fill="none" stroke="#6335df" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 8.2v4l2.8 1.7"
+              fill="none" stroke="#6335df" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Chat History
+        </button>
+                <button type="button" onclick="deleteCurrentChat()">
+          <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12M10 7V4h4v3m-7 0 1 13h8l1-13M10 11v5m4-5v5" fill="none" stroke="#6335df" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Delete Chat
+        </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="messages" id="messages">
+          <div class="message ai"><div><div class="bubble">Hey 👋 I'm Walmo
+
+Tell Me Something About Yourself And I'll Remember It For Our Future Conversations</div></div></div>
+        </div>
+        <div class="input-area">
+          <div class="input-box">
+            <textarea id="messageInput" rows="1" placeholder="Tell Me Something..."></textarea>
+            <button class="send-btn" id="sendBtn" type="button" onclick="handleSendButton()" aria-label="Voice input">
+              <svg class="send-state-icon send-voice-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12v0M8.5 9v6M12 6v12M15.5 9v6M19 12v0"
+                  fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+              </svg>
+              <svg class="send-state-icon send-arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12L12 5L19 12M12 5V21"
+                  fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="send-state-icon send-stop-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="walrus-footer">Powered By Walrus Memory</footer>
+  </div>
+  <script type="module">
+    import { createDAppKit } from "https://esm.sh/@mysten/dapp-kit-core";
+    import { SuiGrpcClient } from "https://esm.sh/@mysten/sui/grpc";
+    import "https://esm.sh/@mysten/dapp-kit-core/web";
+
+    let chatAbortController = null;
+    let isGenerating = false;
+
+    const messagesEl=document.getElementById("messages");
+    const input=document.getElementById("messageInput");
+    const sendBtn=document.getElementById("sendBtn");
+    const memoryCount=document.getElementById("memoryCount");
+    const identityPill=document.getElementById("identityPill");
+
+    let history=[];
+    let totalMemoriesUsed=0;
+
+    // Stable anonymous identity for this browser/device.
+    let anonymousId=localStorage.getItem("walrus_mind_anonymous_id");
+    if(!anonymousId){
+      anonymousId="anon_"+crypto.randomUUID().replaceAll("-","");
+      localStorage.setItem("walrus_mind_anonymous_id",anonymousId);
+    }
+
+    const dAppKit=createDAppKit({
+      networks:["mainnet"],
+      defaultNetwork:"mainnet",
+      createClient:(network)=>new SuiGrpcClient({
+        network,
+        baseUrl:"https://fullnode.mainnet.sui.io:443"
+      })
+    });
+
+    const walletButton=document.getElementById("walletButton");
+    walletButton.instance=dAppKit;
+
+    function getIdentity(){
+      const connection=dAppKit.stores.$connection.get();
+      return connection?.account?.address || anonymousId;
+    }
+
+    function updateIdentityUI(){
+      const connection=dAppKit.stores.$connection.get();
+      if(connection?.account?.address){
+        const address=connection.account.address;
+        identityPill.textContent=`Wallet ${address.slice(0,6)}...${address.slice(-4)}`;
+        identityPill.classList.add("visible");
+      }else{
+        identityPill.textContent="";
+        identityPill.classList.add("visible");
+      }
+    }
+
+    dAppKit.stores.$connection.subscribe(updateIdentityUI);
+    updateIdentityUI();
+
+    function addMessage(text,type,memoriesUsed=0){
+      const wrapper=document.createElement("div");
+      wrapper.className=`message ${type}`;
+      const content=document.createElement("div");
+      const bubble=document.createElement("div");
+      bubble.className="bubble";
+      bubble.textContent=text;
+      content.appendChild(bubble);
+      if(type==="ai"&&memoriesUsed>0){
+        const label=document.createElement("div");
+        label.className="memory-used";
+        label.textContent=`${memoriesUsed} ${memoriesUsed>1?"memories":"memory"} used`;
+        content.appendChild(label);
+      }
+      wrapper.appendChild(content);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop=messagesEl.scrollHeight;
+    }
+
+    function showTyping(){
+      const wrapper=document.createElement("div");
+      wrapper.className="message ai";
+      wrapper.id="typingMessage";
+      wrapper.innerHTML=`<div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop=messagesEl.scrollHeight;
+    }
+
+    function removeTyping(){
+      const typing=document.getElementById("typingMessage");
+      if(typing)typing.remove();
+    }
+
+    function setSendButtonState(state){
+      sendBtn.classList.remove("state-voice","state-ready","state-generating");
+      sendBtn.classList.add(`state-${state}`);
+      if(state==="generating"){
+        sendBtn.setAttribute("aria-label","Stop generating");
+        sendBtn.title="Stop generating";
+      }else if(state==="ready"){
+        sendBtn.setAttribute("aria-label","Send message");
+        sendBtn.title="Send message";
+      }else{
+        sendBtn.setAttribute("aria-label","Voice input");
+        sendBtn.title="Voice input";
+      }
+    }
+
+    function updateSendButtonState(){
+      if(isGenerating){
+        setSendButtonState("generating");
+      }else if(input.value.trim()){
+        setSendButtonState("ready");
+      }else{
+        setSendButtonState("voice");
+      }
+    }
+
+    function handleSendButton(){
+      if(isGenerating){
+        if(chatAbortController){
+          chatAbortController.abort();
+        }
+        return;
+      }
+
+      if(input.value.trim()){
+        sendMessage();
+      }
+      // Empty-state voice icon is visual for now; no voice action is triggered.
+    }
+
+    window.handleSendButton=handleSendButton;
+
+    async function sendMessage(){
+      const message=input.value.trim();
+      if(!message || isGenerating)return;
+
+      addMessage(message,"user");
+      input.value="";
+      input.style.height="auto";
+
+      isGenerating=true;
+      chatAbortController=new AbortController();
+      updateSendButtonState();
+      showTyping();
+
+      try{
+        const response=await fetch("/api/chat",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          signal:chatAbortController.signal,
+          body:JSON.stringify({
+            message,
+            history,
+            identity:getIdentity()
+          })
+        });
+
+        const data=await response.json();
+        removeTyping();
+
+        if(!response.ok||!data.success){
+          throw new Error(data.error||"Something went wrong.");
+        }
+
+        addMessage(data.reply,"ai",data.memoriesUsed?.length||0);
+        history.push(
+          {role:"user",content:message},
+          {role:"assistant",content:data.reply}
+        );
+
+        if(data.memoriesUsed?.length){
+          totalMemoriesUsed+=data.memoriesUsed.length;
+          memoryCount.textContent=`Memory Used: ${totalMemoriesUsed}`;
+        }
+      }catch(error){
+        removeTyping();
+
+        if(error?.name==="AbortError"){
+          return;
+        }
+
+        addMessage("Sorry, I couldn't connect right now. Please try again.","ai");
+        console.error(error);
+      }finally{
+        isGenerating=false;
+        chatAbortController=null;
+        updateSendButtonState();
+        input.focus();
+      }
+    }
+
+    window.sendMessage=sendMessage;
+
+    input.addEventListener("keydown",event=>{
+      if(event.key==="Enter"&&!event.shiftKey){
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    input.addEventListener("input",function(){
+      this.style.height="auto";
+      this.style.height=Math.min(this.scrollHeight,100)+"px";
+      updateSendButtonState();
+    });
+
+    updateSendButtonState();
+</script>
+
+<script>
+/* Force Slush wallet option text styling after the wallet modal renders.
+   The dApp Kit wallet picker uses encapsulated component markup, so this
+   walks open shadow roots and targets the actual Slush text element. */
+(function(){
+  function styleSlush(root){
+    if(!root) return;
+    const all = root.querySelectorAll ? root.querySelectorAll("*") : [];
+    for(const el of all){
+      const text=(el.textContent||"").trim();
+      if(text==="Slush"){
+        el.style.setProperty("font-size","15px","important");
+        el.style.setProperty("font-weight","500","important");
+        el.style.setProperty("color","#111111","important");
+        if(el.parentElement){
+          el.parentElement.style.setProperty("font-size","15px","important");
+          el.parentElement.style.setProperty("font-weight","500","important");
+        }
+      }
+      if(el.shadowRoot) styleSlush(el.shadowRoot);
+    }
+  }
+
+  function apply(){
+    styleSlush(document);
+  }
+
+  const observer=new MutationObserver(apply);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener("load",()=>setTimeout(apply,100));
+  setInterval(apply,500);
+})();
+</script>
+
+<script>
+(function () {
+  const applySlushStyle = (root) => {
+    if (!root || !root.querySelectorAll) return;
+    const all = root.querySelectorAll('*');
+    all.forEach((el) => {
+      const label = (el.textContent || '').trim();
+      if (label === 'Slush') {
+        el.style.setProperty('font-size', '15px', 'important');
+        el.style.setProperty('font-weight', '600', 'important');
+      }
+    });
+  };
+
+  const scan = () => {
+    const walk = (root) => {
+      applySlushStyle(root);
+      if (root.querySelectorAll) {
+        root.querySelectorAll('*').forEach((el) => {
+          if (el.shadowRoot) walk(el.shadowRoot);
+        });
+      }
+    };
+    walk(document);
+  };
+
+  scan();
+  new MutationObserver(scan).observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  });
+})();
+</script>
+
+<script>
+(function () {
+  function applyConnectWalletStyle(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('*').forEach(function (el) {
+      if ((el.textContent || '').trim() === 'Connect Wallet') {
+        el.style.setProperty('font-weight', '700', 'important');
+      }
+    });
+  }
+
+  function scan(root) {
+    applyConnectWalletStyle(root);
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('*').forEach(function (el) {
+      if (el.shadowRoot) scan(el.shadowRoot);
+    });
+  }
+
+  scan(document);
+
+  new MutationObserver(function () {
+    scan(document);
+  }).observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  });
+})();
+</script>
+
+<script>
+(function () {
+  function forceSlush(root) {
+    if (!root || !root.querySelectorAll) return;
+
+    root.querySelectorAll('*').forEach(function (el) {
+      if ((el.textContent || '').trim() === 'Slush') {
+        el.style.setProperty('font-size', '15px', 'important');
+        el.style.setProperty('font-weight', '1500', 'important');
+      }
+
+      if (el.shadowRoot) {
+        forceSlush(el.shadowRoot);
+      }
+    });
+  }
+
+  function run() {
+    forceSlush(document);
+  }
+
+  run();
+
+  new MutationObserver(run).observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  });
+})();
+</script>
+
+<script>
+let chatAbortController = null;
+let isGenerating = false;
+</script>
+
+<script>
+(function(){
+  function initSendIconFix(){
+    const btn=document.getElementById("sendBtn");
+    const input=document.getElementById("messageInput");
+    if(!btn || !input) return false;
+
+    const icons={
+      voice:btn.querySelector(".send-voice-icon"),
+      ready:btn.querySelector(".send-arrow-icon"),
+      generating:btn.querySelector(".send-stop-icon")
+    };
+
+    function sync(){
+      const state=btn.classList.contains("state-generating")
+        ? "generating"
+        : (input.value.trim() ? "ready" : "voice");
+
+      Object.values(icons).forEach(el=>{
+        if(el) el.style.setProperty("display","none","important");
+      });
+
+      if(icons[state]){
+        icons[state].style.setProperty("display","block","important");
+        icons[state].style.setProperty("visibility","visible","important");
+        icons[state].style.setProperty("opacity","1","important");
+      }
+    }
+
+    input.addEventListener("input",sync);
+    new MutationObserver(sync).observe(btn,{attributes:true,attributeFilter:["class"]});
+    sync();
+    return true;
+  }
+
+  if(!initSendIconFix()){
+    const timer=setInterval(function(){
+      if(initSendIconFix()) clearInterval(timer);
+    },50);
+    setTimeout(function(){clearInterval(timer)},5000);
+  }
+})();
+</script>
+
+<script id="send-button-robust-fallback">
+(function(){
+  function getAnonymousIdentity(){
+    let id=localStorage.getItem("walrus_mind_anonymous_id");
+    if(!id){
+      id="anon_"+(window.crypto && crypto.randomUUID ? crypto.randomUUID().replaceAll("-","") : Date.now());
+      localStorage.setItem("walrus_mind_anonymous_id",id);
+    }
+    return id;
+  }
+
+  function fallbackSend(){
+    const input=document.getElementById("messageInput");
+    const btn=document.getElementById("sendBtn");
+    const messages=document.getElementById("messages");
+    if(!input || !btn) return;
+
+    const message=input.value.trim();
+    if(!message) return;
+
+    if(window.__wmFallbackGenerating){
+      if(window.__wmFallbackAbort) window.__wmFallbackAbort.abort();
+      return;
+    }
+
+    // Prefer the real app's send function when its module is loaded.
+    if(typeof window.sendMessage==="function"){
+      window.sendMessage();
+      return;
+    }
+
+    window.__wmFallbackGenerating=true;
+    window.__wmFallbackAbort=new AbortController();
+
+    if(messages){
+      const bubble=document.createElement("div");
+      bubble.className="message user";
+      bubble.innerHTML='<div class="bubble">'+message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")+'</div>';
+      messages.appendChild(bubble);
+      messages.scrollTop=messages.scrollHeight;
+    }
+    input.value="";
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+
+    fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      signal:window.__wmFallbackAbort.signal,
+      body:JSON.stringify({
+        message,
+        history:[],
+        identity:getAnonymousIdentity()
+      })
+    })
+    .then(async r=>{
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok || !data.success) throw new Error(data.error || "Something went wrong.");
+      if(messages){
+        const bubble=document.createElement("div");
+        bubble.className="message ai";
+        bubble.innerHTML='<div class="bubble">'+String(data.reply||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")+'</div>';
+        messages.appendChild(bubble);
+        messages.scrollTop=messages.scrollHeight;
+      }
+    })
+    .catch(err=>{
+      if(err && err.name==="AbortError") return;
+      if(messages){
+        const bubble=document.createElement("div");
+        bubble.className="message ai";
+        bubble.innerHTML='<div class="bubble">Sorry, I couldn\'t connect right now. Please try again.</div>';
+        messages.appendChild(bubble);
+        messages.scrollTop=messages.scrollHeight;
+      }
+      console.error(err);
+    })
+    .finally(()=>{
+      window.__wmFallbackGenerating=false;
+      window.__wmFallbackAbort=null;
+    });
+  }
+
+  // Inline onclick calls this global. If the module later provides its own
+  // implementation, that implementation is used; otherwise fallbackSend runs.
+  window.handleSendButton=function(){
+    if(typeof window.sendMessage==="function"){
+      window.sendMessage();
+    }else{
+      fallbackSend();
+    }
+  };
+
+  const input=document.getElementById("messageInput");
+  if(input){
+    input.addEventListener("keydown",function(e){
+      if(e.key==="Enter" && !e.shiftKey){
+        e.preventDefault();
+        window.handleSendButton();
+      }
+    });
+  }
+})();
+</script>
+
+<script id="walmo-legal-navigation">
+function openWalmoLegal(type){
+  const el=document.getElementById(type==='terms'?'walmoTermsPage':'walmoPrivacyPage');
+  if(el){el.classList.add('open');el.setAttribute('aria-hidden','false');}
+}
+function closeWalmoLegal(type){
+  const el=document.getElementById(type==='terms'?'walmoTermsPage':'walmoPrivacyPage');
+  if(el){el.classList.remove('open');el.setAttribute('aria-hidden','true');}
+}
+</script>
+<div id="walmoTermsPage" class="walmo-legal-overlay" aria-hidden="true">
+  <div class="walmo-legal-inner">
+    <button type="button" class="walmo-legal-close" onclick="closeWalmoLegal('terms')">Back</button>
+    <h2>Terms Of Service</h2>
+    <p>Last Updated: September 22, 2026</p>
+    <h3>About Walmo</h3><p>Walmo is an AI assistant designed to remember information from your conversations and use relevant memories in future conversations.</p>
+    <h3>AI Responses</h3><p>AI responses may be inaccurate or incomplete. You are responsible for how you use information provided by Walmo.</p>
+    <h3>Your Content &amp; Memories</h3><p>Messages and relevant memory information may be processed through Walrus Memory to provide the memory features of Walmo.</p>
+    <h3>Wallet Connection</h3><p>Connecting a wallet is optional. Walmo may use the connected wallet address as an identity for your memory space.</p>
+    <h3>Acceptable Use</h3><p>You agree not to misuse Walmo, attempt to disrupt its services, or use it for unlawful activity.</p>
+    <h3>Third-Party Services</h3><p>Walmo relies on third-party services for certain functionality, including AI processing and memory infrastructure.</p>
+    <h3>Availability</h3><p>Walmo may change, suspend, or discontinue features at any time.</p>
+    <h3>Changes to These Terms</h3><p>These terms may be updated from time to time.</p>
+    <h3>Disclaimer</h3><p>Walmo is provided on an “as is” and “as available” basis without guarantees of uninterrupted or error-free operation.</p>
+    <h3>Contact</h3><p>For questions about these terms, please contact the Walmo team.</p>
+  </div>
+</div>
+<div id="walmoPrivacyPage" class="walmo-legal-overlay" aria-hidden="true">
+  <div class="walmo-legal-inner">
+    <button type="button" class="walmo-legal-close" onclick="closeWalmoLegal('privacy')">Back</button>
+    <h2>Privacy Policy</h2>
+    <p>Last Updated: September 22, 2026</p>
+    <h3>Information We May Process</h3><p>Walmo may process messages, conversation context, memory information, and wallet address information when a wallet is connected.</p>
+    <h3>How Information Is Used</h3><p>Information is used to provide the chatbot, maintain relevant memories, improve the experience, and operate the service.</p>
+    <h3>Walrus Memory</h3><p>Memory data may be stored and processed using Walrus Memory infrastructure.</p>
+    <h3>Wallet Information</h3><p>If you connect a wallet, the wallet address may be used as your identity for memory-related functionality.</p>
+    <h3>AI Processing</h3><p>Messages may be sent to third-party AI infrastructure to generate responses.</p>
+    <h3>Data Security</h3><p>Reasonable measures are used to protect information, but no online service can guarantee absolute security.</p>
+    <h3>Third-Party Services</h3><p>Walmo may use third-party infrastructure providers to operate AI, wallet, and memory functionality.</p>
+    <h3>Data Retention</h3><p>Information may be retained for as long as needed to provide the service and its memory functionality.</p>
+    <h3>Your Choices</h3><p>You may choose not to connect a wallet and may stop using the service at any time.</p>
+    <h3>Changes to This Policy</h3><p>This policy may be updated from time to time.</p>
+    <h3>Contact</h3><p>For privacy questions, please contact the Walmo team.</p>
+  </div>
+</div>
+</body>
+
+</html>
+
+<style id="wallet-modal-position-real">
+/* Wallet modal vertical position only. */
+</style>
+<script id="wallet-modal-position-real-script">
+(function(){
+  const GAP = 10;
+
+  function getRoots(){
+    const roots = [];
+    if (window.__walrusShadowRoots) {
+      window.__walrusShadowRoots.forEach(r=>{
+        if (r && !roots.includes(r)) roots.push(r);
+      });
+    }
+    if (document.querySelector) {
+      document.querySelectorAll('*').forEach(el=>{
+        if (el.shadowRoot && !roots.includes(el.shadowRoot)) roots.push(el.shadowRoot);
+      });
+    }
+    return roots;
+  }
+
+  function findText(root, text){
+    if (!root || !root.querySelectorAll) return null;
+    return [...root.querySelectorAll('*')].find(el=>
+      el.children.length===0 &&
+      (el.textContent||'').trim().toLowerCase()===text.toLowerCase()
+    );
+  }
+
+  function apply(){
+    const btn=document.getElementById('walletButton');
+    if(!btn) return;
+    const br=btn.getBoundingClientRect();
+    if(!br.width || !br.height) return;
+
+    for(const root of getRoots()){
+      const title=findText(root,'Connect a wallet') || findText(root,'Connect A wallet');
+      if(title && (title.textContent||'').trim()==='Connect a wallet'){
+        title.textContent='Connect A Wallet';
+      }
+
+      if(!title) continue;
+
+      let el=title;
+      for(let i=0;i<20 && el;i++,el=el.parentElement){
+        const r=el.getBoundingClientRect();
+        const cs=getComputedStyle(el);
+        if(
+          (cs.position==='fixed' || cs.position==='absolute') &&
+          r.width>=300 && r.height>=250
+        ){
+          const top=br.bottom+GAP;
+
+          el.style.setProperty('width','300px','important');
+          el.style.setProperty('height','400px','important');
+          let divider = el.querySelector('.walrus-modal-bottom-divider');
+          if(!divider){
+            divider = document.createElement('div');
+            divider.className = 'walrus-modal-bottom-divider';
+            el.appendChild(divider);
+          }
+          el.style.setProperty('position','fixed','important');
+          el.style.setProperty('overflow','hidden','important');
+          divider.style.setProperty('position','absolute','important');
+          divider.style.setProperty('left','0','important');
+          divider.style.setProperty('right','0','important');
+          divider.style.setProperty('bottom','0','important');
+          divider.style.setProperty('height','50px','important');
+          divider.style.setProperty('background','#ffffff','important');
+          divider.style.setProperty('border-top','1px solid #e7e9ef','important');
+          divider.style.setProperty('box-sizing','border-box','important');
+          divider.style.setProperty('display','flex','important');
+          divider.style.setProperty('flex-direction','column','important');
+          divider.style.setProperty('align-items','center','important');
+          divider.style.setProperty('justify-content','center','important');
+          divider.style.setProperty('text-align','center','important');
+          divider.style.setProperty('font-size','11px','important');
+          divider.style.setProperty('line-height','1.35','important');
+          divider.style.setProperty('color','#111111','important');
+          divider.innerHTML = 'By Connecting You Agree To<br><span style="color:#6335df;font-weight:700;"><a href="#terms" onclick="event.preventDefault();openWalmoLegal(\'terms\')" style="color:#6335df;text-decoration:none;">Our Terms Of Service</a> <span style="color:#111111;">&amp;</span> <a href="#privacy" onclick="event.preventDefault();openWalmoLegal(\'privacy\')" style="color:#6335df;text-decoration:none;">Privacy Policy</a></span>';
+          el.style.setProperty('top',top+'px','important');
+          el.style.setProperty('bottom','auto','important');
+          el.style.setProperty('margin-top','0px','important');
+
+          // If the component was vertically centered with translateY(-50%),
+          // remove only that vertical transform while keeping horizontal centering.
+          const tr=cs.transform;
+          if(tr && tr!=='none'){
+            el.style.setProperty('transform','translateX(-50%)','important');
+          }
+          return;
+        }
+      }
+    }
+  }
+
+  const observer=new MutationObserver(apply);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('resize',apply);
+  window.addEventListener('scroll',apply,true);
+  document.addEventListener('click',()=>setTimeout(apply,0),true);
+
+  setTimeout(apply,100);
+  setTimeout(apply,300);
+  setTimeout(apply,700);
+  setTimeout(apply,1200);
+})();
+</script>
+
