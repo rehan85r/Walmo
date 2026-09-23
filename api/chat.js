@@ -55,7 +55,6 @@ export default async function handler(req, res) {
           .join("\n")
       : "No relevant memories found.";
 
-    // Send memories + conversation to Gemini
     const messages = [
       {
         role: "system",
@@ -105,7 +104,7 @@ Never claim to remember something that is not present in the provided memories.`
       data?.choices?.[0]?.message?.content ||
       "I couldn't generate a response.";
 
-    // Save memory and wait for the actual Walrus write
+    // Save memory and wait for the Walrus write to complete
     let memoryJobId = null;
     let memoryBlobId = null;
     let memorySaved = false;
@@ -123,11 +122,12 @@ Never claim to remember something that is not present in the provided memories.`
         status: job.status
       });
 
+      // Wait up to 60 seconds for the memory write
       const stored = await memwal.waitForRememberJob(
         job.job_id,
         {
-          pollIntervalMs: 750,
-          timeoutMs: 30000
+          pollIntervalMs: 1500,
+          timeoutMs: 60000
         }
       );
 
