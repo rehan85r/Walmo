@@ -1,1 +1,1 @@
-# walrus-mind
+# walmo
