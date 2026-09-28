@@ -1,9 +1,65 @@
 (function(){
   const fileIds=['walmoCameraInput','walmoPhotosInput','walmoFilesInput'];
   const originalFetch=window.fetch.bind(window);
+  const box=document.querySelector('.input-box');
+  const input=document.getElementById('messageInput');
+  const send=document.getElementById('sendBtn');
   let pending=[];
-  let previousLabel='';
   let loading=Promise.resolve();
+  if(!box||!input)return;
+
+  const styles=document.createElement('style');
+  styles.textContent=`
+    .input-box.walmo-has-attachments{position:relative!important;min-height:150px!important;padding-top:98px!important}
+    .walmo-preview-tray{position:absolute;top:12px;left:18px;right:18px;height:80px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;z-index:2}
+    .walmo-preview-tray[hidden]{display:none!important}
+    .walmo-preview-tray::-webkit-scrollbar{display:none}
+    .walmo-preview-card{position:relative;flex:0 0 76px;width:76px;height:76px;border-radius:15px;background:#f2efff;border:1px solid #e6e2f5;overflow:visible}
+    .walmo-preview-card img{width:100%;height:100%;object-fit:cover;border-radius:14px;display:block}
+    .walmo-preview-file{height:100%;display:flex;align-items:center;justify-content:center;padding:8px;color:#4c5480;font-size:11px;text-align:center;overflow-wrap:anywhere}
+    .walmo-preview-remove{position:absolute;top:-5px;right:-5px;width:24px;height:24px;border:0;border-radius:50%;background:#fff;color:#152043;font-size:18px;line-height:24px;text-align:center;box-shadow:0 2px 8px #0002;cursor:pointer;padding:0}
+    .input-box.walmo-has-attachments #sendBtn .send-voice-icon{display:none!important}
+    .input-box.walmo-has-attachments #sendBtn .send-arrow-icon{display:block!important;visibility:visible!important;opacity:1!important}
+  `;
+  document.head.appendChild(styles);
+  const tray=document.createElement('div');
+  tray.className='walmo-preview-tray';
+  tray.setAttribute('aria-label','Selected attachments');
+  tray.hidden=true;
+  box.appendChild(tray);
+
+  function render(){
+    tray.replaceChildren();
+    tray.hidden=!pending.length;
+    box.classList.toggle('walmo-has-attachments',!!pending.length);
+    for(const [index,item] of pending.entries()){
+      const card=document.createElement('div');
+      card.className='walmo-preview-card';
+      if(item.type.startsWith('image/')){
+        const image=document.createElement('img');
+        image.src=item.data;
+        image.alt=item.name;
+        card.appendChild(image);
+      }else{
+        const label=document.createElement('div');
+        label.className='walmo-preview-file';
+        label.textContent=item.name;
+        card.appendChild(label);
+      }
+      const remove=document.createElement('button');
+      remove.type='button';
+      remove.className='walmo-preview-remove';
+      remove.setAttribute('aria-label','Remove '+item.name);
+      remove.textContent='×';
+      remove.addEventListener('click',()=>{pending.splice(index,1);render();});
+      card.appendChild(remove);
+      tray.appendChild(card);
+    }
+    if(pending.length&&!input.value.trim())send?.classList.add('state-ready');
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    if(pending.length)box.style.setProperty('height','150px','important');
+    else box.style.removeProperty('height');
+  }
 
   function dataURL(file){
     return new Promise((resolve,reject)=>{
@@ -33,26 +89,26 @@
       throw new Error('Total attachments are too large.');
     }
     pending.push(...items);
-    const input=document.getElementById('messageInput');
-    if(!input)return;
-    let draft=input.value;
-    if(previousLabel&&draft.endsWith(previousLabel))draft=draft.slice(0,-previousLabel.length).trimEnd();
-    previousLabel='📎 '+pending.map(item=>item.name).join(', ');
-    input.value=draft?draft+'\n'+previousLabel:previousLabel;
-    input.dispatchEvent(new Event('input',{bubbles:true}));
+    render();
     input.focus();
   }
 
   fileIds.forEach(id=>{
-    const input=document.getElementById(id);
-    if(!input)return;
-    input.addEventListener('change',event=>{
+    const picker=document.getElementById(id);
+    if(!picker)return;
+    picker.addEventListener('change',event=>{
       event.stopImmediatePropagation();
-      const files=Array.from(input.files||[]);
-      input.value='';
+      const files=Array.from(picker.files||[]);
+      picker.value='';
       loading=loading.then(()=>prepare(files)).catch(error=>alert(error.message));
     },true);
   });
+
+  const handleSend=window.handleSendButton;
+  if(typeof handleSend==='function')window.handleSendButton=function(){
+    if(pending.length&&!input.value.trim())input.value='What is in this image?';
+    return handleSend();
+  };
 
   window.fetch=async function(resource,options){
     if(resource!=='/api/chat'||options?.method!=='POST')return originalFetch(resource,options);
@@ -60,7 +116,7 @@
     if(!pending.length)return originalFetch(resource,options);
     const attachments=pending.slice();
     pending=[];
-    previousLabel='';
+    render();
     const body=JSON.parse(options.body);
     body.attachments=attachments;
     return originalFetch(resource,{...options,body:JSON.stringify(body)});
