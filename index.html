@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="#FFFFFF" name="theme-color"/>
+<title>Walmo — That Remembers What Matters</title>
+
+
+<style id="walmo-styles">
+*{margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;min-height:100vh;}
+.app{display:flex;flex-direction:column;}
+.chat-card{display:flex;flex-direction:column;}
+.chat-top{gap:12px;}
+.messages{scroll-behavior:smooth;}
+.message{display:flex;margin-bottom:14px;}
+.message.user{justify-content:flex-end;}
+.bubble{max-width:82%;padding:11px 14px;border-radius:17px;font-size:13px;line-height:1.5;white-space:pre-wrap;}
+.message.ai .bubble{border-bottom-left-radius:5px;}
+.message.user .bubble{border-bottom-right-radius:5px;}
+.memory-used{margin-top:6px;font-size:9px;padding-left:5px;}
+.input-box{display:flex;}
+textarea{flex:1;border:none;outline:none;resize:none;background:transparent;padding:9px;font-family:inherit;font-size:13px;min-height:38px;max-height:100px;color:#111827;}
+textarea::placeholder{color:#9ca3af;}
+.send-btn{border:none;background:#6D28D9;color:#fff;cursor:pointer;transition:.2s;flex-shrink:0;}
+.send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(109,40,217,.2);}
+.send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.typing{display:flex;gap:4px;align-items:center;height:18px;}
+.typing span{width:5px;height:5px;background:#8f95a2;border-radius:50%;animation:bounce 1s infinite;}
+.typing span:nth-child(2){animation-delay:.15s;}
+.typing span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+.attach-btn{width:40px;height:40px;border:none;border-radius:50%;background:transparent;color:#17262D;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.2s;}
+.attach-btn svg{width:21px;height:21px;}
+.attach-btn:hover,
+.attach-btn:focus,
+.attach-btn:focus-visible,
+.attach-btn:active{background:transparent!important;color:#17262D!important;transform:none!important;box-shadow:none!important;outline:none!important;border-color:transparent!important;-webkit-tap-highlight-color:transparent!important;}
+.attach-btn{-webkit-tap-highlight-color:transparent!important;}
+.walmo-attach-overlay{position:fixed;inset:0;background:rgba(12,12,14,.42);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px;z-index:99999;}
+.walmo-attach-overlay.open{display:flex;}
+.walmo-attach-modal{width:min(360px,100%);background:#fff;border:1px solid #e7e3f5;border-radius:22px;box-shadow:0 22px 60px rgba(12,12,14,.2);padding:16px;}
+.walmo-attach-header{display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:800;color:#111827;padding:2px 2px 14px;}
+.walmo-attach-close{width:32px;height:32px;border:0;border-radius:50%;background:#f3f3f7;color:#555;display:flex;align-items:center;justify-content:center;font-size:23px;line-height:1;cursor:pointer;}
+.walmo-attach-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.walmo-attach-option{border:1px solid #e2e3ea;background:#fafbfc;border-radius:16px;min-height:108px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#222;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;}
+.walmo-attach-option:hover{border-color:#e2e3ea;background:#fafbfc;transform:none;}
+.walmo-attach-option:focus,
+.walmo-attach-option:focus-visible{outline:none;border-color:#e2e3ea;background:#fafbfc;box-shadow:none;}
+.walmo-attach-option:active{transform:none;background:#fafbfc;border-color:#e2e3ea;}
+.walmo-attach-option-icon{width:42px;height:42px;border-radius:13px;background:#F5F3FF;color:#6D28D9;display:flex;align-items:center;justify-content:center;}
+.walmo-attach-option-icon svg{width:23px;height:23px;}
+@media (max-width:480px){
+main{padding:6px 20px 6px;}
+.chat-card{border-radius:25px;min-height:0;}
+.chat-top{padding:20px 12px;}
+.messages{padding:12px 20px;min-height:0;}
+.bubble{max-width:88%;font-size:12px;padding:9px 12px;}
+.input-area{padding:8px;}
+.input-box{padding:6px;border-radius:30px!important;}
+textarea{font-size:12px;padding:8px;min-height:34px;}
+.send-btn{width:36px;height:36px;border-radius:11px;}
+}
+@media (min-width:700px){
+main{padding:8px 24px 20px;min-height:0;}
+.messages{padding:18px 22px;}
+.input-area{padding:12px 16px;}
+}
+@media (max-height:700px) and (max-width:600px){
+main{padding-top:4px;padding-bottom:4px;}
+.chat-top{padding:8px 20px;}
+.messages{padding:9px;}
+.input-area{padding:6px;}
+}
+.send-btn{align-self:center!important;margin:0!important;}
+.send-btn{padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;}
+.send-btn{font-size:20px!important;font-weight:700!important;}
+.send-btn{width:35px!important;height:35px!important;min-width:35px!important;min-height:35px!important;max-width:35px!important;max-height:35px!important;border-radius:50%!important;}
+textarea{font-weight:700!important;}
+.send-btn:focus,
+.send-btn:focus-visible,
+.send-btn:active{outline:none!important;box-shadow:none!important;}
+.send-btn,
+.send-btn:hover,
+.send-btn:focus,
+.send-btn:focus-visible,
+.send-btn:active,
+.send-btn:focus-within{outline:0!important;border:0!important;box-shadow:none!important;background-clip:padding-box!important;-webkit-tap-highlight-color:transparent!important;}
+.send-btn::-moz-focus-inner{border:0!important;padding:0!important;}
+.chat-menu-wrap{margin-left:auto;}
+.chat-menu-wrap{display:flex;align-items:center;}
+.chat-menu-btn{border:0;color:#6D28D9;font-size:18px;padding:0;}
+.chat-menu-btn:focus,
+.chat-menu-btn:focus-visible{outline:none;box-shadow:none;}
+.chat-menu-wrap{position:relative!important;z-index:2000!important;}
+.chat-menu-btn{position:relative!important;z-index:2001!important;pointer-events:auto!important;cursor:pointer!important;}
+.new-chat-btn{text-align:center!important;cursor:pointer!important;}
+.new-chat-btn:focus,
+.new-chat-btn:focus-visible{outline:none!important;box-shadow:none!important;}
+.chat-card{background:#FFFFFF!important;}
+.chat-menu-wrap{order:initial!important;}
+.new-chat-btn{height:28px!important;min-height:28px!important;padding:0 20px!important;background:#6D28D9!important;color:#fff!important;border:1px solid #6D28D9!important;border-radius:8px!important;font-family:inherit!important;font-size:11px!important;font-weight:600!important;line-height:1!important;white-space:nowrap!important;}
+.new-chat-btn:hover{background:#6D28D9!important;color:#fff!important;}
+.new-chat-btn:focus,
+.new-chat-btn:focus-visible{outline:none!important;box-shadow:none!important;}
+.new-chat-icon{overflow:visible!important;}
+.new-chat-icon{width:15px!important;height:15px!important;flex:0 0 15px!important;display:block!important;color:#fff!important;}
+.new-chat-btn{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;}
+.send-btn .send-state-icon{display:none!important;width:20px!important;height:20px!important;visibility:visible!important;opacity:1!important;pointer-events:none!important;}
+.send-btn.state-voice .send-voice-icon{display:block!important;}
+.send-btn.state-ready .send-arrow-icon{display:block!important;}
+.send-btn.state-generating .send-stop-icon{display:block!important;}
+.send-btn .send-voice-icon,
+.send-btn .send-arrow-icon{stroke:#fff!important;}
+.send-btn .send-stop-icon{fill:#fff!important;}
+.send-voice-icon{width:20px!important;height:20px!important;}
+.send-btn{gap:3px!important;}
+.chat-menu-btn,
+.chat-menu-btn:hover,
+.chat-menu-btn:focus,
+.chat-menu-btn:focus-visible,
+.chat-menu-btn:active{background:transparent!important;box-shadow:none!important;outline:none!important;-webkit-tap-highlight-color:transparent!important;}
+.new-chat-btn,
+.new-chat-btn:hover,
+.new-chat-btn:focus,
+.new-chat-btn:focus-visible,
+.new-chat-btn:active{background:#6D28D9!important;box-shadow:none!important;outline:none!important;-webkit-tap-highlight-color:transparent!important;}
+.chat-menu-btn::-moz-focus-inner,
+.new-chat-btn::-moz-focus-inner{border:0!important;padding:0!important;}
+.chat-header-actions .new-chat-btn{order:1!important;margin-right:auto!important;}
+.chat-header-actions .chat-menu-wrap{order:2!important;margin-left:auto!important;}
+.chat-header-actions{gap:8px!important;}
+.chat-header-actions{margin-left:0!important;margin-right:0!important;}
+.chat-header-actions > .new-chat-btn{margin-right:auto!important;}
+.chat-header-actions > .chat-menu-wrap{margin-left:auto!important;margin-right:5px!important;}
+.chat-header-actions > .new-chat-btn{margin-left:0!important;}
+.chat-header-actions{padding-left:0!important;}
+.chat-header-actions > .new-chat-btn{width:auto!important;}
+.chat-top{box-sizing:border-box!important;justify-content:stretch!important;}
+.chat-header-actions{height:30px!important;min-height:30px!important;max-height:30px!important;transform:none!important;}
+.chat-header-actions > .new-chat-btn{top:auto!important;transform:none!important;height:30px!important;min-height:30px!important;max-height:30px!important;padding-top:0!important;padding-bottom:0!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;}
+.chat-header-actions > .chat-menu-wrap{height:30px!important;min-height:30px!important;max-height:30px!important;padding:0!important;display:flex!important;align-items:center!important;}
+.chat-header-actions > .chat-menu-wrap > .chat-menu-btn{height:30px!important;min-height:30px!important;max-height:30px!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;}
+.chat-top{align-items:center!important;}
+.chat-header-actions > .chat-menu-wrap{top:50%!important;transform:translateY(-50%)!important;}
+.new-chat-btn{width:70px!important;min-width:70px!important;max-width:70px!important;box-sizing:border-box!important;}
+.walmo-legal-overlay{position:fixed;inset:0;background:#fff;z-index:99999;display:none;overflow:auto;padding:28px 20px 40px;box-sizing:border-box;}
+.walmo-legal-overlay.open{display:block;}
+.walmo-legal-inner{max-width:760px;margin:0 auto;color:#111827;font-family:inherit;line-height:1.6;}
+.walmo-legal-close{border:0;background:#6D28D9;color:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;margin-bottom:20px;}
+.walmo-legal-inner h2{color:#6D28D9;margin:0 0 12px;}
+.walmo-legal-inner h3{font-size:15px;margin:20px 0 6px;}
+.walmo-legal-inner p{font-size:13px;margin:6px 0;}
+.chat-top{padding-left:0!important;padding-right:10px!important;}
+.chat-top .chat-header-actions > .new-chat-btn{position:absolute!important;left:auto!important;margin:0!important;}
+#walmoChatContextMenu button[data-action="rename"] .walmo-action-icon svg{width:17px!important;height:17px!important;display:block!important;overflow:visible!important;}
+#walmoChatContextMenu button[data-action="rename"] .walmo-action-icon{width:17px!important;height:17px!important;flex:0 0 17px!important;}
+.input-box textarea{align-self:center!important;margin-top:0!important;margin-bottom:0!important;}
+.walmo-greeting .bubble{white-space:pre-wrap!important;box-sizing:border-box!important;}
+.walmo-greeting{width:100%!important;height:100%!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;}
+.walmo-greeting > div{width:auto!important;max-width:100%!important;display:block!important;}
+.walmo-greeting .bubble{display:block!important;width:auto!important;max-width:none!important;padding:0!important;margin:0!important;border-radius:0!important;text-align:center!important;}
+#messageInput{align-self:center!important;margin-top:0!important;margin-bottom:0!important;margin-left:-9.5px!important;}
+#messageInput{padding-top:8px!important;padding-bottom:8px!important;}
+#walmoCameraOption,
+#walmoPhotosOption,
+#walmoFilesOption{-webkit-tap-highlight-color:transparent!important;tap-highlight-color:transparent!important;}
+#walmoCameraOption:hover,
+#walmoCameraOption:focus,
+#walmoCameraOption:focus-visible,
+#walmoCameraOption:active,
+#walmoPhotosOption:hover,
+#walmoPhotosOption:focus,
+#walmoPhotosOption:focus-visible,
+#walmoPhotosOption:active,
+#walmoFilesOption:hover,
+#walmoFilesOption:focus,
+#walmoFilesOption:focus-visible,
+#walmoFilesOption:active{background:#fafbfc!important;border-color:#e2e3ea!important;box-shadow:none!important;outline:none!important;transform:none!important;}
+.chat-card{max-height:none!important;}
+#walmoMenuPanel[aria-hidden="true"]{visibility:hidden!important;transform:translateX(-100%)!important;pointer-events:none!important;}
+#walmoMenuPanel[aria-hidden="false"],
+#walmoMenuPanel.open{visibility:visible!important;pointer-events:auto!important;}
+html,
+body,
+.app,
+main,
+.chat-card{width:100%!important;height:100dvh!important;min-height:100svh!important;max-width:none!important;margin:0!important;padding:0!important;}
+body,
+.app,
+main,
+.chat-card{overflow:hidden!important;background:#fff!important;}
+main{display:flex!important;flex-direction:column!important;}
+.chat-card{position:relative!important;}
+.chat-top{inset:0 0 auto 0!important;z-index:120!important;width:100%!important;max-height:64px!important;margin:0!important;border:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none!important;display:block!important;}
+.chat-top > div:first-child{display:none!important;}
+.chat-top .chat-header-actions{position:relative!important;inset:auto!important;width:100%!important;min-height:36px!important;max-height:36px!important;margin:0!important;padding:0!important;transform:none!important;pointer-events:none!important;}
+.chat-top .chat-header-actions > .chat-menu-wrap{position:absolute!important;height:36px!important;margin:0!important;pointer-events:auto!important;}
+.chat-menu-btn{min-width:36px!important;min-height:36px!important;border-radius:12px!important;background:rgba(255,255,255,.92)!important;box-shadow:0 2px 12px rgba(17,24,39,.06)!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;}
+.messages{border:0!important;}
+.input-area{position:relative!important;z-index:110!important;margin:0!important;}
+#walmoMenuPanel{bottom:0!important;left:0!important;right:auto!important;width:min(82vw,360px)!important;max-width:min(82vw,360px)!important;border-radius:0 18px 18px 0!important;transform:translateX(-100%)!important;z-index:9998!important;box-shadow:10px 0 34px rgba(17,24,39,.12)!important;}
+#walmoMenuPanel.open{left:0!important;transform:translateX(0)!important;}
+@media (max-width:480px){
+.chat-top{height:60px!important;min-height:60px!important;max-height:60px!important;padding:max(12px,env(safe-area-inset-top)) 12px 0!important;}
+.messages{padding:70px 14px 18px!important;}
+.walmo-greeting{padding:0 10px 30px!important;}
+.input-area{padding:8px 12px max(10px,env(safe-area-inset-bottom))!important;}
+#walmoMenuPanel{width:min(88vw,340px)!important;max-width:min(88vw,340px)!important;}
+}
+.chat-menu-wrap,
+.chat-menu-btn{position:relative!important;}
+.walmo-greeting .bubble{background:transparent!important;border:none!important;box-shadow:none!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom{height:44px!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-btn{position:static!important;transform:none!important;}
+@media (max-width:480px){
+body > .app > main > .chat-card > .chat-top{height:60px!important;min-height:60px!important;max-height:60px!important;padding:max(12px, env(safe-area-inset-top)) 12px 0!important;}
+body > .app > main > .chat-card > .messages{padding:70px 14px 18px!important;}
+body > .app > main > .chat-card > .input-area{padding:8px 12px max(10px, env(safe-area-inset-bottom))!important;}
+body > .app > main > .chat-card > #walmoMenuPanel{width:min(88vw,340px)!important;max-width:min(88vw,340px)!important;}
+}
+.chat-menu-wrap,
+.chat-menu-btn{z-index:1!important;}
+#walmoMenuPanel .walmo-chat-list{position:absolute!important;left:16px!important;right:16px!important;display:flex!important;flex-direction:column!important;gap:6px!important;overflow-y:auto!important;overflow-x:hidden!important;z-index:2147483646!important;}
+#walmoMenuPanel .walmo-chat-item{width:100%!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;margin:0!important;font-family:inherit!important;font-size:13px!important;font-weight:600!important;line-height:18px!important;text-align:left!important;cursor:pointer!important;overflow:hidden!important;}
+#walmoMenuPanel .walmo-chat-item-title{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+#walmoMenuPanel .walmo-chat-item.pinned .walmo-chat-item-title::before{content:none!important;}
+#walmoChatContextMenu{position:fixed!important;display:none!important;min-width:130px!important;padding:5px!important;background:#ffffff!important;border:1px solid #e4e5ea!important;border-radius:10px!important;box-shadow:0 8px 24px rgba(0,0,0,.12)!important;z-index:2147483647!important;}
+#walmoChatContextMenu.open{display:block!important;}
+#walmoChatContextMenu button{width:100%!important;height:32px!important;padding:0 10px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#111111!important;font:600 12px/32px inherit!important;text-align:left!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:9px!important;}
+#walmoChatContextMenu button:hover,
+#walmoChatContextMenu button:focus,
+#walmoChatContextMenu button:focus-visible,
+#walmoChatContextMenu button:active{outline:none!important;box-shadow:none!important;-webkit-tap-highlight-color:transparent!important;}
+#walmoChatContextMenu button:not([data-action="delete"]):hover{background:#f1f2f6!important;}
+#walmoChatContextMenu button[data-action="delete"]:hover,
+#walmoChatContextMenu button[data-action="delete"]:focus,
+#walmoChatContextMenu button[data-action="delete"]:focus-visible,
+#walmoChatContextMenu button[data-action="delete"]:active{background:#f1f2f6!important;}
+#walmoChatContextMenu .walmo-action-icon{width:16px!important;height:16px!important;flex:0 0 16px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;color:#111111!important;}
+#walmoChatContextMenu .walmo-action-icon svg{width:16px!important;height:16px!important;display:block!important;stroke:#111111!important;fill:none!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important;}
+#walmoChatContextMenu .walmo-action-label{min-width:0!important;flex:1 1 auto!important;}
+#walmoChatRenameInput{width:100%!important;box-sizing:border-box!important;height:32px!important;border:1px solid #d9dbe2!important;border-radius:7px!important;padding:0 8px!important;font:600 12px/32px inherit!important;outline:none!important;}
+.chat-top{position:relative!important;}
+.chat-header-actions{position:relative!important;width:100%!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:space-between!important;}
+.chat-header-actions > .new-chat-btn{position:absolute!important;left:auto!important;right:0!important;margin:0!important;order:2!important;}
+.chat-header-actions > .chat-menu-wrap{position:absolute!important;left:0!important;right:auto!important;margin:0!important;order:1!important;}
+.chat-top .chat-header-actions > .chat-menu-wrap{right:auto!important;}
+.walmo-ai-copy-wrap{width:100%;display:flex;flex-direction:column;align-items:flex-start;}
+.walmo-ai-meta-row{display:flex;align-items:center;justify-content:flex-start;gap:5px;margin-top:6px;}
+.walmo-copy-btn{display:flex;align-items:center;gap:5px;width:max-content;margin:0;padding:3px 5px;border:0;background:transparent;font:inherit;font-size:11px;line-height:1;cursor:pointer;border-radius:6px;-webkit-tap-highlight-color:transparent;}
+.walmo-copy-btn:hover{color:#111111;background:#f5f5f7;}
+.walmo-copy-btn:focus-visible{outline:2px solid #6D28D9;outline-offset:2px;}
+.walmo-copy-btn svg{width:18px;height:18px;display:block;flex:none;}
+.walmo-copy-btn.walmo-copied{color:#6D28D9;}
+.walmo-ai-time{font-size:10px;line-height:1.2;white-space:nowrap;padding-right:2px;}
+@media (max-width:480px){
+.walmo-ai-meta-row{width:88%;}
+}
+.input-box{height:auto!important;box-sizing:border-box!important;}
+#messageInput{height:34px!important;max-height:234px!important;overflow-y:hidden!important;resize:none!important;box-sizing:border-box!important;}
+.input-box{align-items:flex-end!important;}
+#attachBtn,
+#sendBtn{align-self:flex-end!important;margin-top:auto!important;margin-bottom:0!important;flex-shrink:0!important;}
+#attachBtn{padding:0!important;display:flex!important;align-items:center!important;align-self:flex-end!important;margin-top:auto!important;margin-bottom:0!important;line-height:1!important;box-sizing:border-box!important;}
+#attachBtn svg{display:block!important;margin:0!important;flex:none!important;}
+html,
+body{width:100%!important;height:100%!important;min-height:100%!important;overflow:hidden!important;}
+body{overscroll-behavior:none;}
+.app{width:100%!important;max-width:none!important;height:100dvh!important;min-height:100svh!important;margin:0!important;background:#fff!important;overflow:hidden!important;}
+main{flex:1 1 auto!important;min-height:0!important;width:100%!important;padding:0!important;margin:0!important;overflow:hidden!important;background:#fff!important;}
+.chat-card{flex:1 1 auto!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;overflow:hidden!important;}
+.chat-top{flex:0 0 54px!important;height:54px!important;min-height:54px!important;padding:0 20px!important;border-top:0!important;border-bottom:1px solid #efeff4!important;background:rgba(255,255,255,.98)!important;box-shadow:none!important;}
+.chat-top .chat-header-actions{height:100%!important;display:flex!important;align-items:center!important;}
+.chat-top .chat-header-actions > .chat-menu-wrap{left:0!important;top:50%!important;transform:translateY(-50%)!important;}
+.chat-top .chat-header-actions > .new-chat-btn{right:0!important;top:50%!important;transform:translateY(-50%)!important;}
+.chat-menu-btn{width:36px!important;height:36px!important;display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;}
+.messages{flex:1 1 auto!important;min-height:0!important;width:100%!important;padding:28px max(20px,calc((100% - 860px)/2)) 24px!important;background:radial-gradient(circle at 50% 0%,rgba(109,40,217,.025),transparent 32%),
+    #fff!important;overflow-y:auto!important;overscroll-behavior:contain;}
+.messages .message:not(.walmo-greeting){width:100%!important;margin-left:auto!important;margin-right:auto!important;}
+.walmo-greeting{min-height:100%!important;padding:24px 16px 40px!important;}
+.walmo-greeting .bubble{font-size:15px!important;line-height:1.55!important;color:#1d2433!important;}
+.walmo-greeting .bubble::first-line{font-weight:700;}
+.walmo-greeting-second-line{white-space:normal!important;}
+.input-area{flex:0 0 auto!important;width:100%!important;padding:10px 20px 14px!important;background:rgba(255,255,255,.97)!important;border-top:1px solid #f0f0f4!important;box-shadow:0 -10px 28px rgba(17,24,39,.025)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;}
+#walmoMenuPanel{top:54px!important;height:calc(100% - 54px)!important;max-height:calc(100% - 54px)!important;}
+@media (max-width:480px){
+.chat-top{flex-basis:50px!important;height:50px!important;min-height:50px!important;padding:0 14px!important;}
+#walmoMenuPanel{top:50px!important;height:calc(100% - 50px)!important;max-height:calc(100% - 50px)!important;}
+.messages{padding:20px 14px 18px!important;}
+.walmo-greeting{padding:18px 10px 34px!important;}
+.walmo-greeting .bubble{font-size:14px!important;}
+.walmo-greeting-second-line{max-width:calc(100vw - 48px)!important;font-size:12px!important;}
+.input-area{padding:8px 12px max(10px,env(safe-area-inset-bottom))!important;}
+}
+@media (min-width:900px){
+.messages{padding-top:36px!important;padding-bottom:30px!important;}
+.input-area{padding-top:12px!important;padding-bottom:18px!important;}
+}
+html,
+body{width:100%!important;height:100%!important;min-height:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important;}
+body > .app{position:fixed!important;inset:0!important;width:100vw!important;max-width:none!important;height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important;display:flex!important;flex-direction:column!important;}
+body > .app > main{position:relative!important;flex:1 1 auto!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;background:#fff!important;}
+body > .app > main > .chat-card{position:relative!important;flex:1 1 auto!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;background:#fff!important;display:flex!important;flex-direction:column!important;}
+body > .app > main > .chat-card > .chat-top{position:absolute!important;inset:0 0 auto 0!important;z-index:120!important;width:100%!important;height:64px!important;min-height:64px!important;max-height:64px!important;margin:0!important;padding:max(14px, env(safe-area-inset-top)) 16px 0!important;border:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;pointer-events:none!important;display:block!important;}
+body > .app > main > .chat-card > .chat-top > div:first-child{display:none!important;}
+body > .app > main > .chat-card > .chat-top .chat-header-actions{position:relative!important;inset:auto!important;width:100%!important;height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important;padding:0!important;display:block!important;transform:none!important;pointer-events:none!important;}
+body > .app > main > .chat-card > .chat-top .chat-menu-wrap{position:absolute!important;left:0!important;right:auto!important;top:0!important;bottom:auto!important;margin:0!important;transform:none!important;pointer-events:auto!important;}
+body > .app > main > .chat-card > .messages{flex:1 1 auto!important;width:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:78px max(20px, calc((100% - 860px)/2)) 24px!important;background:radial-gradient(circle at 50% 0%,rgba(109,40,217,.025),transparent 30%),#fff!important;border:0!important;}
+body > .app > main > .chat-card > .input-area{position:relative!important;z-index:110!important;flex:0 0 auto!important;width:100%!important;margin:0!important;padding:10px 20px max(14px, env(safe-area-inset-bottom))!important;border:0!important;background:linear-gradient(to top,#fff 72%,rgba(255,255,255,.94))!important;box-shadow:none!important;}
+body > .app > main > .chat-card > #walmoMenuPanel{position:absolute!important;top:0!important;bottom:0!important;left:0!important;right:auto!important;width:min(82vw,360px)!important;max-width:min(82vw,360px)!important;height:100%!important;min-height:100%!important;max-height:100%!important;margin:0!important;border-radius:0 18px 18px 0!important;transform:translateX(-100%)!important;transition:transform .25s ease!important;z-index:9998!important;box-shadow:10px 0 34px rgba(17,24,39,.12)!important;}
+body > .app > main > .chat-card > #walmoMenuPanel.open{left:0!important;transform:translateX(0)!important;}
+@media (max-width:480px){
+body > .app > main > .chat-card > .chat-top{height:60px!important;min-height:60px!important;max-height:60px!important;padding:max(12px, env(safe-area-inset-top)) 12px 0!important;}
+body > .app > main > .chat-card > .messages{padding:70px 14px 18px!important;}
+body > .app > main > .chat-card > .input-area{padding:8px 12px max(10px, env(safe-area-inset-bottom))!important;}
+body > .app > main > .chat-card > #walmoMenuPanel{width:min(88vw,340px)!important;max-width:min(88vw,340px)!important;}
+}
+body > .app > main > .chat-card > .messages > .message.walmo-greeting{margin-bottom:0!important;}
+body > .app > main > .chat-card > .messages{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior-y:contain!important;}
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+:root{--wm-soft:#F0EEFF;--wm-line:#E9EAF5;--wm-shadow:0 24px 70px rgba(55,57,105,.10);--wm-shadow-soft:0 12px 32px rgba(55,57,105,.07);}
+*{box-sizing:border-box;}
+html,
+body{height:100%;overflow:hidden;}
+body,
+button,
+textarea,
+input{font-family:"Poppins",Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;}
+body{color:var(--wm-ink)!important;}
+body>.app{width:100%!important;max-width:none!important;height:100dvh!important;min-height:100svh!important;margin:0!important;overflow:hidden!important;background:transparent!important;}
+body>.app>main{position:relative!important;width:100%!important;height:100%!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;background:transparent!important;}
+body>.app>main>.chat-card{position:relative!important;display:flex!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;isolation:isolate;}
+body>.app>main>.chat-card::before{content:"";position:absolute;inset:0;z-index:-2;pointer-events:none;}
+body>.app>main>.chat-card>.chat-top{position:relative!important;z-index:30!important;flex:0 0 76px!important;height:76px!important;min-height:76px!important;max-height:76px!important;padding:18px 24px 0!important;border:0!important;box-shadow:none!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions{position:relative!important;width:100%!important;height:46px!important;min-height:46px!important;max-height:46px!important;}
+body>.app>main>.chat-card .chat-menu-wrap{position:absolute!important;left:0!important;top:0!important;width:46px!important;height:46px!important;}
+body>.app>main>.chat-card .chat-menu-btn{width:46px!important;height:46px!important;min-width:46px!important;max-width:46px!important;min-height:46px!important;max-height:46px!important;padding:0!important;margin:0!important;display:grid!important;place-items:center!important;border-radius:15px!important;color:var(--wm-ink)!important;outline:0!important;transition:.16s ease!important;}
+body>.app>main>.chat-card .chat-menu-btn .walmo-menu-lines{width:21px!important;height:21px!important;}
+body>.app>main>.chat-card .chat-menu-btn .walmo-menu-lines path{stroke-width:1.8!important;}
+body>.app>main>.chat-card .walmo-top-title{position:absolute!important;left:50%!important;top:0!important;transform:translateX(-50%)!important;height:46px!important;display:flex!important;align-items:center!important;gap:8px!important;padding:0 10px!important;color:var(--wm-ink)!important;-webkit-text-fill-color:var(--wm-ink)!important;background:none!important;font-size:18px!important;font-weight:700!important;letter-spacing:-.5px!important;line-height:1!important;text-shadow:none!important;white-space:nowrap!important;pointer-events:none!important;}
+body>.app>main>.chat-card .walmo-top-title::before,
+body>.app>main>.chat-card .walmo-top-title::after{display:none!important;}
+.walmo-brand-orb{position:relative;display:grid;place-items:center;flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 31% 20%,rgba(255,255,255,.98) 0 3%,rgba(255,255,255,.20) 11%,transparent 24%),radial-gradient(circle at 82% 18%,#63E5F7 0 7%,rgba(99,229,247,.45) 18%,transparent 35%),radial-gradient(circle at 82% 73%,#F260DB 0 13%,rgba(242,96,219,.55) 29%,transparent 48%),radial-gradient(circle at 18% 75%,#6856FF 0 16%,rgba(104,86,255,.55) 34%,transparent 52%),radial-gradient(circle at 50% 49%,#11186F 0 28%,#3D24C6 48%,#B32CD0 70%,#FF67C9 83%,#62DDF3 100%);border:1px solid rgba(255,255,255,.96);box-shadow:inset 0 0 7px rgba(255,255,255,.15),0 4px 10px rgba(87,68,224,.22),0 0 0 2px rgba(255,255,255,.25);isolation:isolate;}
+.walmo-brand-orb::before{content:"";position:absolute;z-index:4;left:4px;top:2px;width:17px;height:8px;border-top:2px solid rgba(255,255,255,.94);border-radius:50%;transform:rotate(-13deg);pointer-events:none;}
+.walmo-brand-face{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);z-index:5;overflow:visible;filter:drop-shadow(0 1px 2px rgba(48,22,132,.20));}
+.walmo-brand-w,
+.walmo-brand-smile{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;}
+.walmo-brand-w{stroke-width:14;}
+.walmo-brand-smile{stroke-width:6;}
+.wallet-area{position:absolute!important;right:0!important;top:0!important;width:65px!important;height:30px!important;margin:0!important;z-index:5!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;pointer-events:auto!important;}
+.wallet-wrap{position:relative!important;width:65px!important;height:30px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important;border:0!important;border-radius:15px!important;cursor:pointer!important;transition:.16s ease!important;}
+.walmo-login-label{position:relative!important;z-index:3!important;color:#fff!important;font-size:15px!important;font-weight:500!important;line-height:1!important;pointer-events:none!important;white-space:nowrap!important;}
+.wallet-area.is-connected{width:136px!important;}
+.wallet-area.is-connected .wallet-wrap{width:76px!important;flex:0 0 76px!important;}
+.wallet-address{color:#2B3859!important;font:500 10px/1 "Poppins",sans-serif!important;white-space:nowrap!important;}
+.wallet-address[hidden],.wallet-logout-button[hidden]{display:none!important;}
+.wallet-area.is-connected .walmo-login-label{display:none!important;}
+.wallet-logout-button{position:absolute!important;inset:0!important;z-index:4!important;width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:0 4px!important;border:0!important;border-radius:15px!important;background:transparent!important;color:#fff!important;font:500 11px/1 "Poppins",sans-serif!important;cursor:pointer!important;pointer-events:auto!important;}
+.wallet-logout-button svg{width:13px;height:13px;flex:0 0 13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.wallet-logout-button:disabled{opacity:.6!important;cursor:wait!important;}
+@media(max-width:420px){body.walmo-wallet-connected>.app>main>.chat-card>.chat-top .chat-header-actions>.walmo-top-title{left:40%!important;}}
+@media (hover:hover) and (pointer:fine){
+.wallet-wrap:hover{transform:translateY(-1px)!important;box-shadow:0 12px 28px rgba(7,21,59,.18)!important;}
+.chat-menu-btn:hover{transform:translateY(-1px)!important;}
+}
+body>.app>main>.chat-card>.messages{position:relative!important;z-index:2!important;flex:1 1 auto!important;min-height:0!important;width:100%!important;padding:8px max(22px,calc((100% - 920px)/2)) 22px!important;overflow-y:auto!important;background:transparent!important;scrollbar-width:thin;scrollbar-color:#D8DAE8 transparent;}
+.message.walmo-greeting{min-height:100%!important;margin:0!important;padding:0 10px 1vh!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;}
+.message.walmo-greeting>div{width:100%!important;max-width:760px!important;}
+.message.ai.walmo-greeting .bubble{width:100%!important;max-width:760px!important;padding:0!important;margin:0 auto!important;display:flex!important;flex-direction:column!important;align-items:center!important;background:transparent!important;border:0!important;box-shadow:none!important;color:var(--wm-ink)!important;white-space:normal!important;}
+.walmo-memory-orb{position:relative!important;display:grid!important;place-items:center!important;width:150px!important;height:150px!important;margin:0 auto 38px!important;border-radius:50%!important;background:radial-gradient(circle at 31% 20%,rgba(255,255,255,.98) 0 3%,rgba(255,255,255,.20) 11%,transparent 24%),
+  radial-gradient(circle at 82% 18%,#63E5F7 0 7%,rgba(99,229,247,.45) 18%,transparent 35%),
+  radial-gradient(circle at 82% 73%,#F260DB 0 13%,rgba(242,96,219,.55) 29%,transparent 48%),
+  radial-gradient(circle at 18% 75%,#6856FF 0 16%,rgba(104,86,255,.55) 34%,transparent 52%),
+  radial-gradient(circle at 50% 49%,#11186F 0 28%,#3D24C6 48%,#B32CD0 70%,#FF67C9 83%,#62DDF3 100%)!important;border:2px solid rgba(255,255,255,.94)!important;isolation:isolate;overflow:visible!important;}
+.walmo-memory-orb::before{content:"";position:absolute;z-index:4;left:17px;top:8px;width:87px;height:39px;border-top:7px solid rgba(255,255,255,.94);border-radius:50%;transform:rotate(-13deg);filter:drop-shadow(0 0 8px rgba(255,255,255,.22));pointer-events:none;}
+.walmo-memory-orb::after{content:"";position:absolute;z-index:-2;left:50%;bottom:-29px;width:105px;height:28px;transform:translateX(-50%);border-radius:50%;pointer-events:none;}
+.walmo-face-mark{position:absolute!important;inset:20px!important;width:calc(100% - 40px)!important;height:calc(100% - 40px)!important;z-index:5!important;overflow:visible!important;filter:drop-shadow(0 4px 9px rgba(48,22,132,.22)) drop-shadow(0 0 4px rgba(255,255,255,.28));}
+.walmo-w-mark,
+.walmo-smile-mark{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;}
+.walmo-w-mark{stroke-width:14;}
+.walmo-smile-mark{stroke-width:6;}
+.walmo-sparkles{position:absolute!important;z-index:6!important;right:-12px!important;top:9px!important;width:4px!important;height:4px!important;border-radius:1px!important;background:#8A6BFF!important;transform:rotate(45deg)!important;box-shadow:18px 24px 0 -1px rgba(255,255,255,.95),-158px 35px 0 -1px #70DDF5,-6px 89px 0 -1px #F06ADA,-142px 92px 0 -1px #8065FF!important;pointer-events:none!important;}
+.walmo-greeting-title{display:block!important;max-width:650px!important;margin:0 auto!important;font-size:30px!important;line-height:1.12!important;font-weight:600!important;letter-spacing:-.02em!important;order:2!important;}
+.walmo-greeting-title strong{font-weight:600!important;}
+.walmo-memory-orb{order:1!important;}
+.walmo-greeting-second-line{order:3!important;display:block!important;max-width:560px!important;margin:12px auto 0!important;font-size:18px!important;line-height:1.55!important;font-weight:400!important;letter-spacing:-.02em!important;}
+.messages .message:not(.walmo-greeting){max-width:900px!important;margin:0 auto 18px!important;}
+.message .bubble{max-width:min(82%,720px)!important;font-size:14px!important;line-height:1.62!important;}
+.message.ai .bubble{padding:5px 2px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#202947!important;}
+.message.user .bubble{padding:12px 16px!important;color:var(--wm-ink)!important;border:1px solid rgba(11,23,57,.055)!important;border-radius:18px 18px 6px 18px!important;}
+.memory-used{color:var(--wm-purple)!important;}
+.walmo-ai-meta-row{width:min(82%,720px)!important;}
+.walmo-copy-btn{color:#98A0B9!important;}
+.walmo-ai-time{color:#98A0B9!important;}
+body>.app>main>.chat-card>.input-area{position:relative!important;z-index:10!important;flex:0 0 auto!important;width:100%!important;padding:10px 24px 10px!important;border:0!important;background:transparent!important;box-shadow:none!important;}
+.input-box{width:100%!important;max-width:900px!important;min-height:64px!important;max-height:250px!important;margin:0 auto!important;padding:7px 9px!important;gap:8px!important;border-radius:34px!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;transition:.17s ease!important;}
+#messageInput{min-height:48px!important;padding:14px 8px!important;color:var(--wm-ink)!important;font-size:15px!important;font-weight:500!important;line-height:20px!important;caret-color:var(--wm-purple)!important;}
+#attachBtn{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;border-radius:50%!important;color:#526080!important;background:transparent!important;}
+#attachBtn svg{width:25px!important;height:25px!important;}
+#sendBtn{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;border-radius:50%!important;background:#D9DCE9!important;box-shadow:none!important;}
+#sendBtn.state-ready,
+#sendBtn.state-generating{background:linear-gradient(135deg,#6655F7,#7748FF)!important;box-shadow:0 10px 24px rgba(101,85,247,.25)!important;}
+body>.app>main>.chat-card>#walmoMenuPanel{position:fixed!important;inset:0 auto 0 0!important;width:300px!important;min-width:300px!important;max-width:300px!important;height:100dvh!important;margin:0!important;padding:0!important;overflow:hidden!important;border:0!important;border-radius:0!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important;z-index:20000!important;transition:transform .22s ease!important;}
+#walmoMenuPanel::before{content:""!important;position:absolute!important;inset:0!important;pointer-events:none!important;}
+.walmo-sidebar-brand{position:absolute;z-index:3;top:15px;left:20px;right:10px;height:40px;display:flex;align-items:center;gap:11px;color:var(--wm-ink);font-size:20px;font-weight:700;letter-spacing:-.5px;}
+.walmo-sidebar-brand .walmo-brand-orb{width:35px;height:35px;align-self:flex-start;}
+.walmo-sidebar-brand .walmo-brand-orb::before{left:5px;top:2px;width:20px;height:9px;}
+.walmo-sidebar-close{position:absolute;top:0;right:0;margin:0;align-self:flex-start;width:50px;height:50px;min-width:50px;min-height:50px;max-width:50px;max-height:50px;padding:0;border:0;border-radius:50%;background:transparent;color:#56617A;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.walmo-sidebar-close svg{width:20px;height:20px;display:block;transform:translateY(-5px);}
+.walmo-sidebar-close:focus-visible{outline:2px solid rgba(101,85,247,.28);outline-offset:2px;}
+@media (hover:hover) and (pointer:fine){
+.walmo-sidebar-close:hover{background:rgba(101,85,247,.07);color:#2B3859;}
+}
+@media (min-width:900px){
+.walmo-sidebar-close{display:none!important;}
+}
+.walmo-sidebar-nav{position:absolute;z-index:3;top:135px;left:20px;right:20px;display:grid;gap:5px;}
+.walmo-sidebar-nav button{height:40px;border:0;border-radius:12px;background:transparent;color:#2B3859;text-align:left;padding:0 14px;font:500 15px/1 "Poppins",sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s ease,color .15s ease;}
+.walmo-sidebar-nav button span{display:inline-flex;width:18px;height:18px;margin-right:12px;align-items:center;justify-content:flex-start;vertical-align:middle;font-size:18px;line-height:18px;color:#17262D;}
+.walmo-sidebar-nav button:hover,
+.walmo-sidebar-nav button:focus,
+.walmo-sidebar-nav button:focus-visible,
+.walmo-sidebar-nav button:active{background:rgba(101,85,247,.07)!important;color:#2B3859!important;outline:none!important;box-shadow:none!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom{position:absolute!important;z-index:4!important;top:75px!important;left:20px!important;right:20px!important;bottom:auto!important;padding:0!important;background:transparent!important;border:0!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-btn{width:100%!important;min-width:100%!important;max-width:100%!important;height:45px!important;min-height:45px!important;max-height:45px!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;box-sizing:border-box!important;overflow:hidden!important;white-space:nowrap!important;border:0!important;border-radius:13px!important;color:#fff!important;font-size:13px!important;font-weight:500!important;line-height:1!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-icon{width:18px!important;height:18px!important;flex:0 0 18px!important;display:block!important;margin:0!important;transform:none!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-btn>span{height:18px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;line-height:18px!important;}
+.new-chat-btn svg path{stroke:#fff!important;}
+/* Chat sections use content flow, so pinning moves Recents naturally. */
+#walmoMenuPanel .walmo-history-stack{position:absolute;z-index:3;top:280px;left:0;right:0;bottom:22px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain;}
+#walmoMenuPanel .walmo-history-stack::-webkit-scrollbar{display:none;}
+#walmoMenuPanel .walmo-menu-pinned-header,#walmoMenuPanel .walmo-menu-recents-label{position:relative!important;top:auto!important;left:auto!important;right:auto!important;display:none!important;flex:0 0 30px!important;height:30px!important;margin:0 20px!important;z-index:3!important;}
+#walmoMenuPanel.has-pinned-chats .walmo-menu-pinned-header,#walmoMenuPanel.has-recent-chats .walmo-menu-recents-label{display:block!important;}
+#walmoMenuPanel .walmo-history-heading{height:30px!important;display:flex!important;align-items:center!important;gap:8px!important;color:#2B3859!important;font:600 15px/1 Poppins,sans-serif!important;letter-spacing:0!important;}
+#walmoMenuPanel .walmo-history-heading::after{content:none!important;display:none!important;}
+#walmoMenuPanel .walmo-pinned-chat-list,#walmoMenuPanel .walmo-recent-chat-list{position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;flex:0 0 auto!important;box-sizing:border-box!important;display:none!important;overflow:visible!important;z-index:3!important;gap:3px!important;padding:0!important;}
+#walmoMenuPanel.has-pinned-chats .walmo-pinned-chat-list{display:grid!important;grid-auto-rows:40px!important;grid-template-rows:none!important;margin:7px 0 0!important;}
+#walmoMenuPanel.has-recent-chats .walmo-recent-chat-list{display:flex!important;flex-direction:column!important;margin:7px 0 0!important;}
+#walmoMenuPanel.has-pinned-chats .walmo-menu-recents-label{margin-top:7px!important;}
+#walmoMenuPanel .walmo-chat-item{min-height:40px!important;padding:9px 20px!important;border:1px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#33405F!important;transition:background .14s ease,border-color .14s ease,box-shadow .14s ease!important;}
+#walmoMenuPanel .walmo-chat-item-title{font-size:11.5px!important;font-weight:500!important;color:#33405F!important;letter-spacing:-.01em!important;}
+#walmoMenuPanel .walmo-chat-item.pinned{background:transparent!important;border-color:transparent!important;}
+#walmoMenuPanel .walmo-pinned-chat-list .walmo-chat-item{width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;box-sizing:border-box!important;padding:3px 20px!important;margin:0!important;overflow:hidden!important;}
+#walmoMenuPanel .walmo-pinned-chat-list .walmo-chat-item-title{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+#walmoMenuPanel .walmo-chat-item.pinned .walmo-chat-item-title{color:#17262D!important;font-weight:500!important;}
+#walmoMenuPanel .walmo-chat-item:hover,
+#walmoMenuPanel .walmo-chat-item:focus,
+#walmoMenuPanel .walmo-chat-item:focus-visible,
+#walmoMenuPanel .walmo-chat-item:active{background:rgba(101,85,247,.07)!important;border-color:transparent!important;box-shadow:none!important;outline:none!important;transform:none!important;-webkit-tap-highlight-color:transparent!important;}
+@media (min-width:900px){
+body>.app>main>.chat-card{padding-left:300px!important;}
+body>.app>main>.chat-card>#walmoMenuPanel,
+body>.app>main>.chat-card>#walmoMenuPanel[aria-hidden="true"],
+body>.app>main>.chat-card>#walmoMenuPanel[aria-hidden="false"],
+body>.app>main>.chat-card>#walmoMenuPanel.open{transform:none!important;visibility:visible!important;pointer-events:auto!important;}
+body>.app>main>.chat-card .chat-menu-wrap{display:none!important;}
+body>.app>main>.chat-card .walmo-top-title{display:flex!important;}
+body>.app>main>.chat-card>.chat-top{padding-left:24px!important;padding-right:30px!important;}
+body>.app>main>.chat-card>.messages{padding-left:max(32px,calc((100% - 980px)/2))!important;padding-right:max(32px,calc((100% - 980px)/2))!important;}
+}
+@media (max-width:899px){
+body>.app>main>.chat-card>#walmoMenuPanel{width:60vw!important;min-width:60vw!important;max-width:60vw!important;transform:translate3d(-100%,0,0)!important;visibility:hidden!important;pointer-events:none!important;box-shadow:24px 0 70px rgba(55,57,105,.16)!important;}
+body>.app>main>.chat-card>#walmoMenuPanel.open,
+body>.app>main>.chat-card>#walmoMenuPanel[aria-hidden="false"]{transform:translate3d(0,0,0)!important;visibility:visible!important;pointer-events:auto!important;}
+body>.app>main>.chat-card>#walmoMenuPanel[aria-hidden="true"]{transform:translate3d(-100%,0,0)!important;visibility:hidden!important;pointer-events:none!important;}
+}
+@media (max-width:600px){
+body>.app>main>.chat-card>.chat-top{flex-basis:64px!important;height:64px!important;min-height:64px!important;max-height:64px!important;padding:10px 12px 0!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions{height:42px!important;}
+.chat-menu-wrap,
+.chat-menu-btn{width:42px!important;height:42px!important;min-width:42px!important;max-width:42px!important;min-height:42px!important;max-height:42px!important;}
+.walmo-top-title{height:42px!important;font-size:16px!important;gap:7px!important;}
+.walmo-top-title .walmo-brand-orb{width:26px!important;height:26px!important;}
+.walmo-top-title .walmo-brand-orb::before{left:4px!important;top:2px!important;width:15px!important;height:7px!important;}
+.wallet-area,
+.wallet-wrap{width:65px!important;height:30px!important;}
+.wallet-wrap{border-radius:15px!important;}
+.walmo-login-label{font-size:15px!important;}
+body>.app>main>.chat-card>.messages{padding:4px 14px 12px!important;}
+.message.walmo-greeting{padding:0 4px 1vh!important;}
+.walmo-memory-orb{width:100px!important;height:100px!important;margin-bottom:28px!important;}
+.walmo-memory-orb::before{left:12px!important;top:6px!important;width:61px!important;height:28px!important;border-top-width:5px!important;}
+.walmo-memory-orb::after{width:76px!important;height:20px!important;bottom:-21px!important;}
+.walmo-face-mark{inset:14px!important;width:calc(100% - 28px)!important;height:calc(100% - 28px)!important;}
+.walmo-w-mark{stroke-width:14!important;}
+.walmo-smile-mark{stroke-width:6!important;}
+.walmo-sparkles{right:-9px!important;top:7px!important;box-shadow:13px 18px 0 -1px rgba(255,255,255,.95),-112px 26px 0 -1px #70DDF5,-4px 64px 0 -1px #F06ADA,-101px 66px 0 -1px #8065FF!important;}
+.walmo-greeting-title{font-size:30px!important;max-width:360px!important;}
+.walmo-greeting-second-line{margin-top:9px!important;font-size:13.5px!important;max-width:340px!important;}
+body>.app>main>.chat-card>.input-area{padding:8px 10px max(12px,env(safe-area-inset-bottom))!important;}
+.input-box{min-height:54px!important;border-radius:28px!important;padding:4px 6px!important;}
+.input-box #messageInput{min-height:44px!important;padding:12px 6px!important;font-size:15px!important;font-weight:500!important;}
+.input-box #attachBtn{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;}
+.input-box #sendBtn{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;}
+.input-box #attachBtn svg{width:25px!important;height:25px!important;}
+.message .bubble{max-width:89%!important;font-size:13.5px!important;}
+.walmo-ai-meta-row{width:89%!important;}
+}
+@media (prefers-reduced-motion:reduce){
+*{scroll-behavior:auto!important;}
+.wallet-wrap,
+.chat-menu-btn,
+#sendBtn{transition:none!important;}
+}
+.input-box.walmo-plus-compact #attachBtn{align-self:center!important;margin-top:auto!important;margin-bottom:auto!important;transform:translateY(-3px)!important;}
+.input-box:not(.walmo-plus-compact) #attachBtn{align-self:flex-end!important;margin-top:auto!important;margin-bottom:0!important;transform:none!important;}
+#messageInput{scrollbar-width:none!important;-ms-overflow-style:none!important;}
+#messageInput::-webkit-scrollbar{width:0!important;height:0!important;display:none!important;}
+.input-box{padding-left:10px!important;}
+#attachBtn{justify-content:flex-start!important;}
+@media (max-width:899px){
+.input-box{padding-left:10px!important;}
+#attachBtn{justify-content:flex-start!important;}
+}
+#attachBtn{margin-right:-21px!important;}
+@media (max-width:899px){
+#attachBtn{margin-right:-19px!important;}
+}
+#sendBtn,
+#sendBtn.state-voice,
+#sendBtn.state-ready,
+#sendBtn.state-generating{background:linear-gradient(135deg,#6655F7,#7748FF)!important;}
+:root{--wm-bg:#F7F8FF!important;--wm-panel:#FFFFFF!important;--wm-ink:#0B1739!important;--wm-muted:#7B85A2!important;--wm-purple:#6555F7!important;--wm-purple2:#7748FF!important;}
+body>.app>main>.chat-card>.chat-top{backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;}
+body>.app>main>.chat-card .chat-menu-btn{border-color:rgba(11,23,57,.045)!important;}
+.input-box{border-color:rgba(23,38,45,.055)!important;}
+#messageInput::placeholder{color:#929AB3!important;}
+body>.app>main>.chat-card>#walmoMenuPanel{border-right-color:rgba(11,23,57,.040)!important;}
+.message.user .bubble{border-color:rgba(11,23,57,.045)!important;background:rgba(255,255,255,.94)!important;box-shadow:0 8px 24px rgba(55,57,105,.045)!important;}
+@media (max-width:899px){
+body>.app>main>.chat-card>#walmoMenuPanel{box-shadow:22px 0 64px rgba(55,57,105,.12)!important;}
+}
+html,
+body{background:#F4F5FF!important;}
+body{background:radial-gradient(circle at 16% 8%,rgba(111,92,255,.12),transparent 30%),
+    radial-gradient(circle at 88% 18%,rgba(91,214,255,.09),transparent 27%),
+    radial-gradient(circle at 72% 86%,rgba(235,91,211,.06),transparent 28%),
+    linear-gradient(180deg,#FBFBFF 0%,#F3F5FF 100%)!important;}
+body>.app>main>.chat-card{background:linear-gradient(180deg,rgba(253,253,255,.98),rgba(247,248,255,.98))!important;}
+body>.app>main>.chat-card::before{background:radial-gradient(circle at 50% 34%,rgba(119,72,255,.075),transparent 26%),
+    radial-gradient(circle at 77% 18%,rgba(89,216,255,.055),transparent 24%),
+    linear-gradient(180deg,rgba(253,253,255,.97),rgba(247,248,255,.98))!important;}
+body>.app>main>.chat-card>.chat-top{background:linear-gradient(180deg,rgba(252,252,255,.96),rgba(248,249,255,.82) 74%,transparent)!important;border-bottom:1px solid rgba(33,40,78,.035)!important;}
+body>.app>main>.chat-card .chat-menu-btn{background:rgba(255,255,255,.9)!important;border:1px solid rgba(25,34,67,.06)!important;box-shadow:0 8px 22px rgba(48,52,94,.08)!important;}
+.wallet-wrap{background:linear-gradient(135deg,#071638,#111E4A)!important;box-shadow:0 10px 26px rgba(7,21,59,.20)!important;}
+.walmo-memory-orb{box-shadow:inset 0 0 30px rgba(255,255,255,.16),
+    inset -10px -14px 28px rgba(34,14,121,.17),
+    0 22px 50px rgba(99,72,232,.25),
+    0 0 42px rgba(91,211,255,.11),
+    0 0 0 5px rgba(255,255,255,.30)!important;}
+.walmo-memory-orb::after{background:radial-gradient(ellipse,rgba(104,82,255,.28) 0%,rgba(238,91,215,.12) 43%,transparent 74%)!important;filter:blur(12px)!important;}
+.walmo-greeting-title{color:#0B1739!important;}
+.walmo-greeting-title strong{background:linear-gradient(100deg,#5E50F4 0%,#8A4DFF 58%,#C05DEB 100%)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;}
+.walmo-greeting-second-line{color:#77819C!important;}
+.input-box{background:rgba(255,255,255,.985)!important;border:1px solid rgba(56,61,106,.07)!important;box-shadow:0 22px 60px rgba(55,57,105,.12),0 3px 10px rgba(55,57,105,.035)!important;}
+.input-box:focus-within{border-color:rgba(101,85,247,.22)!important;box-shadow:0 24px 64px rgba(55,57,105,.14),0 0 0 4px rgba(101,85,247,.045)!important;}
+#sendBtn.state-ready,
+#sendBtn.state-generating,
+#sendBtn.state-voice{background:linear-gradient(135deg,#6655F7,#7748FF)!important;box-shadow:0 11px 26px rgba(101,85,247,.28)!important;}
+body>.app>main>.chat-card>#walmoMenuPanel{background:linear-gradient(180deg,rgba(253,253,255,.985),rgba(246,247,255,.985))!important;border-right:1px solid rgba(43,47,87,.055)!important;box-shadow:20px 0 58px rgba(54,56,104,.075)!important;}
+#walmoMenuPanel::before{background:radial-gradient(circle at 18% 3%,rgba(101,85,247,.075),transparent 24%),
+    linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0) 44%)!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-btn{background:linear-gradient(135deg,#6655F7,#7748FF)!important;box-shadow:0 12px 28px rgba(101,85,247,.24)!important;}
+#walmoMenuPanel .walmo-chat-item:hover,
+#walmoMenuPanel .walmo-chat-item:focus,
+#walmoMenuPanel .walmo-chat-item:focus-visible,
+#walmoMenuPanel .walmo-chat-item:active,
+.walmo-sidebar-nav button:hover,
+.walmo-sidebar-nav button:focus,
+.walmo-sidebar-nav button:focus-visible,
+.walmo-sidebar-nav button:active{background:rgba(101,85,247,.075)!important;}
+@media (max-width:899px){
+body>.app>main>.chat-card>#walmoMenuPanel{box-shadow:24px 0 70px rgba(54,56,104,.16)!important;}
+}
+.input-box{padding-right:10px!important;}
+.input-box #sendBtn{width:35px!important;height:35px!important;min-width:35px!important;min-height:35px!important;max-width:35px!important;max-height:35px!important;flex:0 0 35px!important;align-self:center!important;margin-top:auto!important;margin-bottom:auto!important;}
+#walmoAttachOverlay{background:rgba(11,23,57,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px;}
+#walmoAttachOverlay .walmo-attach-modal{position:relative;width:min(410px,100%);padding:24px;border:1px solid rgba(101,85,247,.12);border-radius:26px;background:radial-gradient(circle at 100% 0,rgba(101,85,247,.10),transparent 45%),linear-gradient(180deg,#fff 0%,#F9F9FF 100%);box-shadow:0 28px 90px rgba(11,23,57,.22),0 3px 12px rgba(55,57,105,.08);}
+#walmoAttachOverlay .walmo-attach-header{align-items:flex-start;gap:12px;padding:0 0 23px;color:#0B1739;}
+#walmoAttachOverlay .walmo-attach-heading{min-width:0;}
+#walmoAttachOverlay #walmoAttachTitle{font:700 21px/1.24 Poppins,sans-serif;letter-spacing:-.035em;}
+#walmoAttachOverlay .walmo-attach-close{flex:0 0 34px;width:34px;height:34px;background:#F0F1FA;color:#5D6884;font:400 23px/1 Arial,sans-serif;transition:background .15s,color .15s;}
+#walmoAttachOverlay .walmo-attach-close:hover{background:#E9E7FF;color:#6555F7;}
+#walmoAttachOverlay .walmo-attach-close:focus-visible{outline:2px solid #6555F7;outline-offset:2px;}
+#walmoAttachOverlay .walmo-attach-options{gap:10px;}
+#walmoAttachOverlay .walmo-attach-option{min-width:0;min-height:112px;padding:15px 6px 13px;border:1px solid rgba(101,85,247,.18);border-radius:18px;background:linear-gradient(155deg,#F8F7FF 0%,#F0EDFF 100%);color:#243050;font:600 12px/1.3 Poppins,sans-serif;box-shadow:0 6px 18px rgba(84,72,150,.055);transition:background .16s,border-color .16s,box-shadow .16s,transform .16s;}
+#walmoAttachOverlay .walmo-attach-option-icon{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#E8E4FF,#F0EAFF);color:#6555F7;}
+#walmoAttachOverlay .walmo-attach-option-icon svg{width:23px;height:23px;}
+#walmoAttachOverlay .walmo-attach-option:hover{background:#EEEAFE!important;border-color:rgba(101,85,247,.35)!important;box-shadow:0 10px 22px rgba(101,85,247,.10)!important;transform:translateY(-2px)!important;}
+#walmoAttachOverlay .walmo-attach-option:active{transform:translateY(0)!important;background:#EDE9FF!important;border-color:rgba(101,85,247,.35)!important;}
+#walmoAttachOverlay .walmo-attach-option:focus-visible{outline:2px solid #6555F7!important;outline-offset:2px!important;border-color:rgba(101,85,247,.35)!important;background:#EEEAFE!important;}
+@media(max-width:480px){
+#walmoAttachOverlay .walmo-attach-modal{padding:21px 17px 18px;border-radius:23px;}
+#walmoAttachOverlay .walmo-attach-options{gap:8px;}
+#walmoAttachOverlay .walmo-attach-option{min-height:102px;padding:12px 3px 10px;}
+#walmoAttachOverlay #walmoAttachTitle{font-size:19px;}
+}
+body>.app>main>.chat-card .chat-menu-wrap{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;}
+body>.app>main>.chat-card .chat-menu-btn{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;border-radius:10px!important;}
+body>.app>main>.chat-card .chat-menu-btn .walmo-menu-lines{width:18px!important;height:18px!important;}
+body>.app>main>.chat-card .chat-menu-btn{box-sizing:border-box!important;flex:0 0 30px!important;padding:0!important;background:#fff!important;border:1px solid rgba(25,34,67,.06)!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions{height:46px!important;min-height:46px!important;max-height:46px!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions>.chat-menu-wrap{top:8px!important;bottom:auto!important;transform:none!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions>.walmo-top-title{top:0!important;height:46px!important;min-height:46px!important;max-height:46px!important;transform:translateX(-50%)!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions>.wallet-area{top:8px!important;bottom:auto!important;height:30px!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions>.wallet-area .wallet-wrap{height:30px!important;}
+@media(hover:hover) and (pointer:fine){
+body>.app>main>.chat-card .chat-menu-btn:hover{transform:none!important;}
+}
+body>.app>main>.chat-card .chat-menu-wrap{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;max-width:40px!important;max-height:40px!important;}
+body>.app>main>.chat-card>.chat-top .chat-header-actions>.chat-menu-wrap{top:3px!important;}
+body>.app>main>.chat-card .chat-menu-btn{box-sizing:border-box!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;max-width:40px!important;max-height:40px!important;flex:0 0 40px!important;border-radius:13px!important;}
+body>.app>main>.chat-card .chat-menu-btn .walmo-menu-lines{width:20px!important;height:20px!important;}
+.walmo-sidebar-nav button span svg{display:block;width:20px;height:20px;flex:0 0 20px;color:#17262D;}
+.walmo-sidebar-nav button span{width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;flex:0 0 20px!important;align-items:center!important;justify-content:center!important;color:#2B3859!important;}
+.walmo-sidebar-nav button span svg{width:20px!important;height:20px!important;flex:0 0 20px!important;color:inherit!important;}
+/* Pinned and Recents share the navigation icon grid and label styling. */
+#walmoMenuPanel .walmo-history-heading{box-sizing:border-box!important;width:100%!important;height:30px!important;padding:0 14px!important;gap:12px!important;align-items:center!important;color:#2B3859!important;font:500 15px/1 "Poppins",sans-serif!important;letter-spacing:0!important;}
+#walmoMenuPanel .walmo-history-heading-icon,
+#walmoMenuPanel .walmo-menu-pinned-header .walmo-history-heading-icon,
+#walmoMenuPanel .walmo-menu-recents-label .walmo-history-heading-icon{box-sizing:border-box!important;width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;flex:0 0 20px!important;display:grid!important;place-items:center!important;background:transparent!important;border-radius:0!important;color:#2B3859!important;}
+#walmoMenuPanel .walmo-history-heading-icon svg,
+#walmoMenuPanel .walmo-menu-pinned-header .walmo-history-heading-icon svg,
+#walmoMenuPanel .walmo-menu-recents-label .walmo-history-heading-icon svg{width:20px!important;height:20px!important;display:block!important;}
+#walmoMenuPanel .walmo-menu-pinned-label,
+#walmoMenuPanel .walmo-menu-recents-text{color:#2B3859!important;font:500 15px/1 "Poppins",sans-serif!important;letter-spacing:0!important;}
+/* Align sidebar icons to the New Chat button's 20px inset. */
+#walmoMenuPanel .walmo-sidebar-nav button{padding-left:0!important;}
+#walmoMenuPanel .walmo-history-heading{padding-left:0!important;}
+/* Stronger sidebar labels, preserving their current colors and spacing. */
+#walmoMenuPanel .walmo-sidebar-nav button,
+#walmoMenuPanel .walmo-menu-pinned-label,
+#walmoMenuPanel .walmo-menu-recents-text{font-weight:600!important;}
+#walmoMenuPanel .walmo-sidebar-nav button{font-size:15px!important;font-weight:700!important;}
+#walmoMenuPanel .walmo-menu-pinned-label,#walmoMenuPanel .walmo-menu-recents-text{font-size:15px!important;font-weight:700!important;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-btn{font-weight:700!important;}
+/* Chat list titles in both Pinned and Recents. */
+#walmoMenuPanel .walmo-chat-item-title,
+#walmoMenuPanel .walmo-chat-item.pinned .walmo-chat-item-title{font-size:15px!important;font-weight:500!important;line-height:1.2!important;}
+#walmoAttachOverlay .walmo-attach-header{align-items:center;padding-bottom:18px;}
+#walmoMenuPanel .walmo-menu-new-chat-bottom .new-chat-btn{font-size:15px!important;}
+.walmo-greeting-second-line{font-size:15px!important;}
+/* Shared UI dimensions and typography across mobile and desktop. */
+body>.app>main>.chat-card>.chat-top{flex-basis:64px!important;height:64px!important;min-height:64px!important;max-height:64px!important;padding:10px 12px 0!important;}
+body>.app>main>.chat-card>.messages{padding:4px max(14px,calc((100% - 920px)/2)) 12px!important;}
+body>.app>main>.chat-card>.input-area{padding:8px 10px max(12px,env(safe-area-inset-bottom))!important;}
+body>.app>main>.chat-card .walmo-top-title{font-size:18px!important;}
+body>.app>main>.chat-card .walmo-top-title .walmo-brand-orb{width:26px!important;height:26px!important;}
+body>.app>main>.chat-card .walmo-top-title .walmo-brand-orb::before{left:4px!important;top:2px!important;width:15px!important;height:7px!important;}
+.message.walmo-greeting{padding:0 4px 1vh!important;}
+.walmo-memory-orb{width:100px!important;height:100px!important;margin-bottom:28px!important;}
+.walmo-memory-orb::before{left:12px!important;top:6px!important;width:61px!important;height:28px!important;border-top-width:5px!important;}
+.walmo-memory-orb::after{width:76px!important;height:20px!important;bottom:-21px!important;}
+.walmo-face-mark{inset:14px!important;width:calc(100% - 28px)!important;height:calc(100% - 28px)!important;}
+.walmo-sparkles{right:-9px!important;top:7px!important;box-shadow:13px 18px 0 -1px rgba(255,255,255,.95),-112px 26px 0 -1px #70DDF5,-4px 64px 0 -1px #F06ADA,-101px 66px 0 -1px #8065FF!important;}
+.walmo-greeting-title{font-size:30px!important;max-width:360px!important;}
+.walmo-greeting-second-line{margin-top:9px!important;max-width:340px!important;font-size:15px!important;}
+.input-box{min-height:54px!important;border-radius:28px!important;padding:4px 6px!important;}
+.input-box #messageInput{min-height:44px!important;padding:12px 6px!important;font-size:15px!important;font-weight:500!important;}
+.message .bubble{max-width:89%!important;font-size:13.5px!important;}
+.walmo-ai-meta-row{width:89%!important;}
+#attachBtn{margin-right:-19px!important;}
+#walmoAttachOverlay .walmo-attach-modal{padding:21px 17px 18px;border-radius:23px;}
+#walmoAttachOverlay .walmo-attach-options{gap:8px;}
+#walmoAttachOverlay .walmo-attach-option{min-height:102px;padding:12px 3px 10px;}
+#walmoAttachOverlay #walmoAttachTitle{font-size:19px;}
+/* The plus control starts after a consistent 10px inner gap on every viewport. */
+.input-box{padding-left:15px!important;padding-right:10px!important;}
+.message.user .bubble{font-size:15px!important;font-weight:500!important;}
+.message.ai:not(.walmo-greeting) .bubble{font-size:15px!important;font-weight:500!important;}
+/* Keep longer absolute dates readable on narrow viewports. */
+.walmo-ai-meta-row{width:100%!important;flex-wrap:wrap;row-gap:4px;}
+.walmo-ai-time{max-width:calc(100% - 35px);white-space:normal;overflow-wrap:normal;line-height:1.2;}
+/* Chat actions use the same soft violet surfaces as the current sidebar. */
+#walmoChatContextMenu{box-sizing:border-box!important;width:228px!important;min-width:228px!important;padding:8px!important;border:1px solid rgba(101,85,247,.16)!important;border-radius:18px!important;background:linear-gradient(155deg,#fff 0%,#F8F7FF 100%)!important;box-shadow:0 22px 55px rgba(25,27,70,.18),0 3px 10px rgba(64,51,130,.06)!important;font-family:Poppins,sans-serif!important;overflow:hidden!important;}
+#walmoChatContextMenu .walmo-action-heading{padding:8px 10px 10px!important;margin:0 0 5px!important;border-bottom:1px solid rgba(101,85,247,.10)!important;}
+#walmoChatContextMenu .walmo-action-heading strong{display:block;color:#0B1739;font:700 13px/1.3 Poppins,sans-serif;}
+#walmoChatContextMenu .walmo-action-heading span{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8B93AB;font:500 11px/1.4 Poppins,sans-serif;}
+#walmoChatContextMenu button[data-action]{height:42px!important;padding:0 10px!important;border-radius:11px!important;background:transparent!important;color:#2B3859!important;font:600 13px/1.2 Poppins,sans-serif!important;gap:11px!important;transition:background .15s,color .15s!important;}
+#walmoChatContextMenu button[data-action]:hover,#walmoChatContextMenu button[data-action]:focus-visible,#walmoChatContextMenu button[data-action]:active{background:#F0EDFF!important;color:#6555F7!important;}
+#walmoChatContextMenu button[data-action="delete"]{margin-top:5px!important;border-top:1px solid rgba(101,85,247,.10)!important;border-radius:0 0 11px 11px!important;color:#C75265!important;}
+#walmoChatContextMenu button[data-action="delete"]:hover,#walmoChatContextMenu button[data-action="delete"]:focus,#walmoChatContextMenu button[data-action="delete"]:focus-visible,#walmoChatContextMenu button[data-action="delete"]:active{background:#FFF0F2!important;color:#B93850!important;}
+#walmoChatContextMenu .walmo-action-icon,#walmoChatContextMenu button[data-action="rename"] .walmo-action-icon{width:20px!important;height:20px!important;flex:0 0 20px!important;color:inherit!important;}
+#walmoChatContextMenu .walmo-action-icon svg,#walmoChatContextMenu button[data-action="rename"] .walmo-action-icon svg{width:20px!important;height:20px!important;stroke:currentColor!important;stroke-width:1.8!important;}
+#walmoChatContextMenu .walmo-rename-form[hidden]{display:none!important;}
+#walmoChatContextMenu .walmo-rename-form{display:flex!important;gap:6px!important;padding:8px 2px 3px!important;}
+#walmoChatContextMenu #walmoChatRenameInput{min-width:0!important;flex:1!important;height:36px!important;padding:0 9px!important;border:1px solid #DAD6FA!important;border-radius:10px!important;background:#fff!important;color:#0B1739!important;font:500 12px/1.2 Poppins,sans-serif!important;}
+#walmoChatContextMenu #walmoChatRenameInput:focus{border-color:#6555F7!important;box-shadow:0 0 0 3px rgba(101,85,247,.12)!important;}
+#walmoChatContextMenu .walmo-rename-save{flex:0 0 36px;width:36px;height:36px;border:0;border-radius:10px;background:#6555F7;color:#fff;font:700 18px/1 Poppins,sans-serif;cursor:pointer;}
+
+/* Sidebar navigation panels */
+.walmo-nav-overlay{position:fixed;inset:0;z-index:2147483645;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(11,23,57,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.walmo-nav-overlay.open{display:flex;}
+.walmo-nav-dialog{box-sizing:border-box;width:min(430px,100%);max-height:min(650px,calc(100dvh - 36px));display:flex;flex-direction:column;padding:22px;border:1px solid rgba(101,85,247,.13);border-radius:24px;background:radial-gradient(circle at 100% 0,rgba(101,85,247,.10),transparent 45%),linear-gradient(180deg,#fff,#F9F9FF);box-shadow:0 28px 90px rgba(11,23,57,.23);font-family:Poppins,sans-serif;color:#0B1739;}
+.walmo-nav-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:18px;}
+.walmo-nav-head h2{margin:0;font:700 21px/1.25 Poppins,sans-serif;letter-spacing:-.03em;}
+.walmo-nav-head p{margin:5px 0 0;color:#8790AA;font:500 12px/1.4 Poppins,sans-serif;}
+#walmoNavClose{width:34px;height:34px;flex:0 0 34px;border:0;border-radius:50%;background:#F0F1FA;color:#5D6884;font:400 23px/1 Arial,sans-serif;cursor:pointer;}
+#walmoNavClose:hover{background:#E9E7FF;color:#6555F7;}
+#walmoNavContent{min-height:0;overflow:auto;overscroll-behavior:contain;}
+.walmo-nav-search{box-sizing:border-box;width:100%;height:45px;padding:0 14px;border:1px solid #DDD9F7;border-radius:13px;background:#fff;color:#0B1739;font:500 14px Poppins,sans-serif;outline:none;}
+.walmo-nav-search:focus{border-color:#6555F7;box-shadow:0 0 0 4px rgba(101,85,247,.10);}
+.walmo-nav-list{display:grid;gap:8px;margin-top:14px;}
+.walmo-nav-item{width:100%;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border:1px solid rgba(101,85,247,.11);border-radius:14px;background:#fff;color:#2B3859;text-align:left;cursor:pointer;font-family:Poppins,sans-serif;}
+.walmo-nav-item:hover,.walmo-nav-item:focus-visible{background:#F1EEFF;border-color:rgba(101,85,247,.3);outline:none;}
+.walmo-nav-item strong{display:block;max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 13px/1.4 Poppins,sans-serif;}
+.walmo-nav-item small{display:block;margin-top:2px;color:#8A93AC;font:500 11px/1.3 Poppins,sans-serif;}
+.walmo-nav-item .walmo-nav-chevron{color:#8A7CF6;font-size:20px;}
+.walmo-nav-empty{padding:30px 12px;text-align:center;color:#8A93AC;font:500 13px/1.6 Poppins,sans-serif;}
+.walmo-nav-section-label{margin:17px 2px 6px;color:#6555F7;font:700 11px/1.3 Poppins,sans-serif;text-transform:uppercase;letter-spacing:.06em;}
+.walmo-preferences-form{display:grid;gap:14px;}
+.walmo-preferences-form label{display:grid;gap:7px;color:#2B3859;font:600 12px/1.4 Poppins,sans-serif;}
+.walmo-preferences-form select{box-sizing:border-box;width:100%;height:43px;padding:0 12px;border:1px solid #DDD9F7;border-radius:12px;background:#fff;color:#2B3859;font:500 13px Poppins,sans-serif;outline:none;}
+.walmo-preferences-form select:focus{border-color:#6555F7;box-shadow:0 0 0 3px rgba(101,85,247,.10);}
+.walmo-preferences-form button{height:43px;border:0;border-radius:12px;background:linear-gradient(135deg,#6655F7,#7748FF);color:#fff;font:600 13px Poppins,sans-serif;cursor:pointer;}
+.walmo-preferences-form button:focus-visible{outline:2px solid #6555F7;outline-offset:3px;}
+@media(max-width:480px){.walmo-nav-dialog{padding:20px 17px;border-radius:22px;}}
+
+/* Deleted chat recovery */
+.walmo-trash-list{margin-top:0;}
+.walmo-trash-item{padding:14px;border:1px solid rgba(101,85,247,.13);border-radius:15px;background:#fff;}
+.walmo-trash-item strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#202A47;font:600 14px/1.4 Poppins,sans-serif;}
+.walmo-trash-item small{display:block;margin:3px 0 12px;color:#8A93AC;font:500 11px/1.4 Poppins,sans-serif;}
+.walmo-trash-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.walmo-trash-actions button{min-height:34px;padding:7px 12px;border:1px solid #DCD7FB;border-radius:10px;background:#F2EFFF;color:#6555F7;font:600 12px/1.2 Poppins,sans-serif;cursor:pointer;}
+.walmo-trash-actions button:hover,.walmo-trash-actions button:focus-visible{background:#E8E3FF;outline:none;}
+.walmo-trash-actions .walmo-trash-delete{border-color:#F2D9DE;background:#FFF5F6;color:#B63F58;}
+.walmo-trash-actions .walmo-trash-delete:hover,.walmo-trash-actions .walmo-trash-delete:focus-visible{background:#FFE8ED;}
+#walmoMenuPanel .walmo-history-heading{padding-left:0!important;}
+#walmoMenuPanel .walmo-pinned-item-icon{width:18px;height:18px;flex:0 0 18px;display:inline-flex;align-items:center;justify-content:center;margin-right:10px;color:#6555F7;}
+#walmoMenuPanel .walmo-pinned-item-icon svg{width:18px;height:18px;display:block;}
+/* Long press opens chat actions without selecting sidebar text. */
+#walmoMenuPanel .walmo-chat-item,#walmoMenuPanel .walmo-chat-item *,
+#walmoChatContextMenu .walmo-action-heading,#walmoChatContextMenu .walmo-action-heading *{
+  -webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;
+}
+#walmoNavContent .walmo-trash-toolbar{display:flex;justify-content:flex-end;margin:0 0 12px;}
+#walmoNavContent .walmo-trash-toolbar[hidden]{display:none!important;}
+#walmoNavContent .walmo-trash-toolbar button{min-height:36px;padding:8px 13px;border:1px solid #F2D9DE;border-radius:11px;background:#FFF5F6;color:#B63F58;font:600 12px/1.2 Poppins,sans-serif;cursor:pointer;}
+#walmoNavContent .walmo-trash-toolbar button:hover,#walmoNavContent .walmo-trash-toolbar button:focus-visible{background:#FFE8ED;outline:none;}
+/* Consistent inset for both preference dropdown arrows. */
+#walmoNavContent .walmo-preferences-form select{
+  -webkit-appearance:none;appearance:none;
+  padding-right:40px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232B3859' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-size:18px 18px;background-position:right 10px center;
+}
+/* Keep the send control beside the plus icon as the composer grows. */
+.input-box:not(.walmo-plus-compact) #sendBtn{
+  align-self:flex-end!important;
+  margin-top:auto!important;
+  margin-bottom:7.5px!important;
+}
+#walmoNavContent.walmo-trash-scroll{scrollbar-width:none;-ms-overflow-style:none;}
+#walmoNavContent.walmo-trash-scroll::-webkit-scrollbar{width:0;height:0;display:none;}
+/* Navigation hover fills the sidebar while labels keep their 20px inset. */
+#walmoMenuPanel .walmo-sidebar-nav{left:0!important;right:0!important;}
+#walmoMenuPanel .walmo-sidebar-nav button{box-sizing:border-box;width:100%!important;padding-left:20px!important;padding-right:20px!important;border-radius:0!important;}
+@media (min-width:900px){#walmoMenuPanel .walmo-sidebar-nav button{font-weight:600!important;}}
+@media (min-width:700px){
+  #walmoMenuPanel .walmo-history-heading .walmo-menu-pinned-label,
+  #walmoMenuPanel .walmo-history-heading .walmo-menu-recents-text{font:600 15px/1 "Poppins",sans-serif!important;}
+}
+@media (min-width:900px){
+  body>.app>main>.chat-card>.chat-top .chat-header-actions>.walmo-top-title{display:none!important;}
+}
+@media (min-width:900px){
+  .input-box #sendBtn{width:35px!important;height:35px!important;min-width:35px!important;min-height:35px!important;max-width:35px!important;max-height:35px!important;flex:0 0 35px!important;}
+}
+@media (min-width:900px){
+  body>.app>main>.chat-card>.chat-top{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+}
+@media (min-width:900px){.walmo-ai-time{font-size:12px!important;}}
+/* Attribution lives at the foot of the sidebar, clear of the chat composer. */
+#walmoMenuPanel .walmo-history-stack{bottom:52px;}
+#walmoMenuPanel .walmo-menu-powered-note{position:absolute;z-index:4;left:20px;right:20px;bottom:10px;text-align:center;white-space:nowrap;color:#929AB3;font:500 10px/1.4 "Poppins",sans-serif;letter-spacing:.01em;}
+#walmoMenuPanel .walmo-menu-powered-note a{color:inherit;text-decoration:underline;text-underline-offset:2px;}
+@media (min-width:900px){#walmoMenuPanel .walmo-menu-powered-note{font-size:12px;}}
+/* Center each navigation icon and label on the same row. */
+#walmoMenuPanel .walmo-sidebar-nav button{display:flex!important;align-items:center!important;justify-content:flex-start!important;line-height:1!important;}
+#walmoMenuPanel .walmo-sidebar-nav button>span{display:flex!important;align-items:center!important;justify-content:center!important;vertical-align:baseline!important;}
+#walmoChatContextMenu button[data-action] .walmo-action-icon{transform:translateY(-1px)!important;}
+/* Keep the Login button's dark color steady on tap, focus, and hover. */
+.wallet-wrap,.wallet-wrap:hover,.wallet-wrap:focus,.wallet-wrap:focus-visible,.wallet-wrap:active{
+  background:linear-gradient(135deg,#071638,#111E4A)!important;
+  color:#fff!important;
+  transform:none!important;
+  outline:none!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+.wallet-area.is-google-connected{width:130px!important;gap:5px!important;}
+.wallet-area.is-google-connected .wallet-wrap{width:76px!important;flex:0 0 76px!important;}
+.wallet-area.is-google-connected .walmo-login-label{display:none!important;}
+.wallet-area.is-google-connected .wallet-address{max-width:49px;overflow:hidden;text-overflow:ellipsis;font-size:10px!important;}
+body.walmo-google-signed-in>.app>main>.chat-card>.chat-top .chat-header-actions>.walmo-top-title{left:50%!important;transform:translateX(-50%)!important;}
+@media(max-width:360px){
+  body.walmo-google-signed-in>.app>main>.chat-card>.chat-top .chat-header-actions>.walmo-top-title{font-size:14px!important;gap:4px!important;}
+  body.walmo-google-signed-in .walmo-top-title .walmo-brand-orb{width:22px!important;height:22px!important;}
+}
+.walmo-login-overlay{position:fixed;inset:0;z-index:2147483645;display:none;justify-content:center;align-items:flex-start;box-sizing:border-box;padding:clamp(80px,12vh,116px) 12px 16px;background:rgba(11,23,57,.44);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);}
+.walmo-login-overlay.open{display:flex;}
+.walmo-login-dialog{position:relative;box-sizing:border-box;width:min(340px,100%);height:360px;overflow:hidden;border:1px solid rgba(226,222,241,.82);border-radius:22px;background:linear-gradient(180deg,#fff 0%,#FEFDFF 68%,#FAF8FF 100%);box-shadow:0 24px 64px rgba(28,31,61,.14);color:#17262D;font-family:Poppins,system-ui,sans-serif;}
+.walmo-login-dialog header{display:flex;align-items:center;justify-content:center;box-sizing:border-box;height:58px;border-bottom:1px solid rgba(232,229,244,.72);font-size:20px;font-weight:600;background:linear-gradient(100deg,#5E50F4,#8A4DFF 58%,#C05DEB);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.walmo-login-options{display:flex;flex-direction:column;gap:12px;padding:54px 25px 0;}
+.walmo-login-provider{box-sizing:border-box;width:100%;height:56px;border:1px solid #E8E5F4;border-radius:18px;background:#fff;box-shadow:0 6px 18px rgba(31,38,67,.06);}
+#walmoGoogleSlot{position:relative;display:flex;align-items:center;overflow:hidden;}
+.walmo-provider-visual{display:flex;align-items:center;gap:14px;box-sizing:border-box;width:100%;height:100%;padding:0 18px;color:#17262D;font:600 15px/1 Poppins,system-ui,sans-serif;white-space:nowrap;pointer-events:none;}
+.walmo-provider-visual svg{display:block;flex:0 0 25px;width:25px;height:25px;}
+#walmoGoogleNative{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;opacity:.01;}
+.walmo-slush-option{display:flex;align-items:center;gap:14px;padding:0 18px;color:#17262D;font:600 15px/1 Poppins,system-ui,sans-serif;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.walmo-slush-option img{display:block;flex:0 0 25px;width:25px;height:25px;object-fit:contain;}
+.walmo-slush-option:disabled{cursor:wait;}
+.walmo-login-error{min-height:18px;color:#B93850;font-size:11px;line-height:1.3;}
+.walmo-login-dialog footer{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;height:58px;border-top:1px solid #EEEAF6;background:rgba(250,249,253,.96);color:#8A91A5;text-align:center;font-size:10px;line-height:1.45;}
+.walmo-login-dialog footer a{color:#6655F7;text-decoration:none;}
+</style>
+
+
+<style>
+.walmo-memory-chip{margin:0 0 10px;max-width:100%;font-size:13px;white-space:normal}
+.walmo-memory-chip summary{display:inline-block;background:#EEEDFE;color:#3C3489;border-radius:18px;padding:8px 12px;cursor:pointer}
+.walmo-memory-chip ul{background:white;border:.5px solid #E4E3F7;border-radius:14px;padding:12px 12px 12px 28px;overflow-wrap:anywhere;white-space:pre-wrap}
+.walmo-memory-chip li{margin:6px 0}
+</style>
+<script>
+window.walmoMemoryChip=function(container,memories){
+ const rows=(Array.isArray(memories)?memories:[]).filter(x=>x&&typeof x.text==='string'&&x.text.trim()&&!x.text.startsWith('Web3 learning log'));
+ if(!rows.length)return;
+ const details=document.createElement('details');details.className='walmo-memory-chip';
+ const summary=document.createElement('summary');summary.textContent='Recalled from memory';details.append(summary);
+ const list=document.createElement('ul');
+ rows.forEach(x=>{const li=document.createElement('li');let text=x.text;
+  if(text.startsWith('Walmo chat project report v1: ')){try{const r=JSON.parse(text.slice('Walmo chat project report v1: '.length));text=r.name+' — '+r.checkedAt+'\n'+r.summary}catch{}}
+  li.textContent=text;list.append(li)});
+ details.append(list);container.prepend(details);
+};
+</script>
+</head>
+<body>
+<div class="app">
+<main>
+<section class="chat-card">
+<div aria-hidden="true" id="walmoMenuPanel">
+<div class="walmo-sidebar-brand"><span aria-hidden="true" class="walmo-brand-orb"><svg class="walmo-brand-face" focusable="false" viewbox="0 0 120 120"><path class="walmo-brand-w" d="M25 43 C29 58 36 65 44 65 C52 65 54 47 60 43 C66 39 69 65 78 65 C86 65 91 55 96 38"></path><path class="walmo-brand-smile" d="M48 82 C55 89 66 89 73 82"></path></svg></span><span>Walmo</span><button aria-label="Close menu" class="walmo-sidebar-close" id="walmoSidebarClose" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></button></div>
+<div aria-label="Walmo navigation" class="walmo-sidebar-nav"><button type="button" id="walmoNavPersonalize"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5" fill="white"/><circle cx="15" cy="17" r="2.5" fill="white"/></svg></span>Personalize</button><button type="button" id="walmoNavSearch"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg></span>Search</button><button type="button" id="walmoNavTrash"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5m4-5v5"/></svg></span>Trash</button></div>
+<div class="walmo-history-stack">
+<div class="walmo-menu-pinned-header">
+<div class="walmo-history-heading">
+<span class="walmo-menu-pinned-label">Pinned</span>
+</div>
+</div>
+<div class="walmo-chat-list walmo-pinned-chat-list" id="walmoPinnedChats"></div>
+<div class="walmo-menu-recents-label">
+<div class="walmo-history-heading">
+<span class="walmo-menu-recents-text">Recents</span>
+</div>
+</div>
+<div class="walmo-chat-list walmo-recent-chat-list" id="walmoRecentChats"></div>
+</div>
+<div class="walmo-menu-new-chat-bottom">
+<button aria-label="New Chat" class="new-chat-btn" id="newChatBtn" type="button">
+<svg aria-hidden="true" class="new-chat-icon" viewbox="0 0 24 24">
+<path d="M12 5v14M5 12h14" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2"></path>
+</svg>
+<span>New Chat</span>
+</button>
+</div>
+<div class="walmo-menu-powered-note">Powered By Walrus Memory</div>
+<div class="walmo-menu-panel-inner"></div>
+</div>
+<div class="chat-top">
+<div></div>
+<div class="chat-header-actions">
+<div class="chat-menu-wrap">
+<button aria-label="Chat menu" class="chat-menu-btn" id="chatMenuBtn" type="button"><svg aria-hidden="true" class="walmo-menu-lines" viewbox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.1"></path></svg></button>
+</div>
+<div aria-label="Walmo" class="walmo-top-title"><span aria-hidden="true" class="walmo-brand-orb"><svg class="walmo-brand-face" focusable="false" viewbox="0 0 120 120"><path class="walmo-brand-w" d="M25 43 C29 58 36 65 44 65 C52 65 54 47 60 43 C66 39 69 65 78 65 C86 65 91 55 96 38"></path><path class="walmo-brand-smile" d="M48 82 C55 89 66 89 73 82"></path></svg></span><span>Walmo</span></div>
+<div class="wallet-area">
+<span class="wallet-address" id="walletAddress" hidden></span>
+<div class="wallet-wrap">
+<span class="walmo-login-label" id="walletStatusLabel">Login</span>
+<button class="wallet-logout-button" id="walletLogoutBtn" type="button" hidden><span>Logout</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 7l5 5-5 5M15 12H3M13 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg></button>
+</div>
+</div>
+</div>
+</div>
+<div class="messages" id="messages">
+<div class="message ai walmo-greeting"><div><div class="bubble"><span class="walmo-greeting-title">Your AI <strong>Your Memory</strong></span><span aria-hidden="true" class="walmo-memory-orb"><svg class="walmo-face-mark" focusable="false" viewbox="0 0 120 120"><path class="walmo-w-mark" d="M25 43 C29 58 36 65 44 65 C52 65 54 47 60 43 C66 39 69 65 78 65 C86 65 91 55 96 38"></path><path class="walmo-smile-mark" d="M48 82 C55 89 66 89 73 82"></path></svg><span class="walmo-sparkles"></span></span><span class="walmo-greeting-second-line">Track Your Projects. Walmo Remembers What Matters.</span></div></div></div>
+</div>
+<div class="input-area">
+<div class="input-box">
+<button aria-label="Add photo or file" class="attach-btn" id="attachBtn" type="button">
+<svg aria-hidden="true" viewbox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+</button>
+<textarea id="messageInput" placeholder="Ask Walmo" rows="1"></textarea>
+<button aria-label="Voice input" class="send-btn" id="sendBtn" onclick="handleSendButton()" type="button">
+<svg aria-hidden="true" class="send-state-icon send-voice-icon" viewbox="0 0 24 24">
+<path d="M5 12v0M8.5 9v6M12 6v12M15.5 9v6M19 12v0" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2.4"></path>
+</svg>
+<svg aria-hidden="true" class="send-state-icon send-arrow-icon" viewbox="0 0 24 24">
+<path d="M5 12L12 5L19 12M12 5V21" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8"></path>
+</svg>
+<svg aria-hidden="true" class="send-state-icon send-stop-icon" viewbox="0 0 24 24">
+<rect fill="#fff" height="10" rx="1.5" width="10" x="7" y="7"></rect>
+</svg>
+</button>
+</div>
+</div>
+</section>
+<div id="walmoLoginOverlay" class="walmo-login-overlay" aria-hidden="true">
+  <section class="walmo-login-dialog" role="dialog" aria-modal="true" aria-labelledby="walmoLoginTitle">
+    <header id="walmoLoginTitle">Connect Google &amp; Wallet</header>
+    <div class="walmo-login-options">
+      <div id="walmoGoogleSlot" class="walmo-login-provider">
+        <div class="walmo-provider-visual" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.41Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.36l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.93A6.02 6.02 0 0 1 6.08 12c0-.67.11-1.32.31-1.93V7.45H3.04A10 10 0 0 0 2 12c0 1.61.39 3.14 1.04 4.55l3.35-2.62Z"/><path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.82 1.5l2.87-2.87A9.62 9.62 0 0 0 12 2a10 10 0 0 0-8.96 5.45l3.35 2.62C7.18 7.7 9.39 5.94 12 5.94Z"/></svg><span>Connect With Google</span></div>
+        <div id="walmoGoogleNative" aria-label="Connect With Google"></div>
+      </div>
+      <button id="walmoSlushOption" class="walmo-login-provider walmo-slush-option" type="button">
+        <img id="walmoSlushIcon" src="data:image/png;base64,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" alt="" aria-hidden="true" width="25" height="25" />
+        <span>Connect With Slush</span>
+      </button>
+      <p id="walmoLoginError" class="walmo-login-error" role="status"></p>
+    </div>
+    <footer><div>By Continuing You Agree To Walmo<br><a href="#terms" onclick="event.preventDefault();openWalmoLegal('terms')">Terms Of Service</a> And <a href="#privacy" onclick="event.preventDefault();openWalmoLegal('privacy')">Privacy Policy</a></div></footer>
+  </section>
+</div>
+<div aria-hidden="true" class="walmo-attach-overlay" id="walmoAttachOverlay">
+<div aria-labelledby="walmoAttachTitle" aria-modal="true" class="walmo-attach-modal" role="dialog">
+<div class="walmo-attach-header">
+<div class="walmo-attach-heading"><div id="walmoAttachTitle">Share With Walmo</div></div>
+<button aria-label="Close" class="walmo-attach-close" id="walmoAttachClose" type="button">×</button>
+</div>
+<div class="walmo-attach-options">
+<button class="walmo-attach-option" id="walmoCameraOption" type="button">
+<span class="walmo-attach-option-icon camera-icon"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M4 7.5h4l1.4-2h5.2l1.4 2H20a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-9A1.5 1.5 0 0 1 4 7.5Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"></path><circle cx="12" cy="13" fill="none" r="3.2" stroke="currentColor" stroke-width="1.8"></circle></svg></span>
+<span>Camera</span>
+</button>
+<button class="walmo-attach-option" id="walmoPhotosOption" type="button">
+<span class="walmo-attach-option-icon photo-icon"><svg aria-hidden="true" viewbox="0 0 24 24"><rect fill="none" height="16" rx="2" stroke="currentColor" stroke-width="1.8" width="18" x="3" y="4"></rect><circle cx="8" cy="9" fill="currentColor" r="1.5"></circle><path d="m4.5 17 4.2-4.2 3.1 3 2.4-2.4 5.3 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path></svg></span>
+<span>Photos</span>
+</button>
+<button class="walmo-attach-option" id="walmoFilesOption" type="button">
+<span class="walmo-attach-option-icon file-icon"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M6 3.5h8l4 4V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20V3.5Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"></path><path d="M14 3.5V8h4M9 12h6M9 15.5h6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path></svg></span>
+<span>Files</span>
+</button>
+</div>
+</div>
+</div>
+<input accept="image/*" capture="environment" hidden="" id="walmoCameraInput" type="file"/>
+<input accept="image/*" hidden="" id="walmoPhotosInput" multiple="" type="file"/>
+<input accept="*/*" hidden="" id="walmoFilesInput" multiple="" type="file"/>
+<div id="walmoNavOverlay" class="walmo-nav-overlay" aria-hidden="true">
+  <section class="walmo-nav-dialog" role="dialog" aria-modal="true" aria-labelledby="walmoNavTitle">
+    <div class="walmo-nav-head"><div><h2 id="walmoNavTitle">Search</h2><p id="walmoNavDescription"></p></div><button type="button" id="walmoNavClose" aria-label="Close">×</button></div>
+    <div id="walmoNavContent"></div>
+  </section>
+</div>
+</main>
+</div>
+<script type="module">
+    import { createDAppKit } from "https://esm.sh/@mysten/dapp-kit-core";
+    import { SuiGrpcClient } from "https://esm.sh/@mysten/sui/grpc";
+
+    let chatAbortController = null;
+    let isGenerating = false;
+
+    const messagesEl=document.getElementById("messages");
+    const input=document.getElementById("messageInput");
+    const sendBtn=document.getElementById("sendBtn");
+
+    let history=[];
+
+    const dAppKit=createDAppKit({
+      networks:["mainnet"],
+      defaultNetwork:"mainnet",
+      createClient:(network)=>new SuiGrpcClient({
+        network,
+        baseUrl:"https://fullnode.mainnet.sui.io:443"
+      })
+    });
+
+    const walletArea=document.querySelector('.wallet-area');
+    const walletStatusLabel=document.getElementById('walletStatusLabel');
+    const walletAddress=document.getElementById('walletAddress');
+    const walletLogoutBtn=document.getElementById('walletLogoutBtn');
+    dAppKit.stores.$connection.subscribe(connection=>{
+      const address=connection.isConnected && connection.account?.address;
+      walletArea.classList.toggle('is-connected',Boolean(address));
+      document.body.classList.toggle('walmo-wallet-connected',Boolean(address));
+      walletStatusLabel.textContent='Login';
+      walletAddress.hidden=!address;
+      walletAddress.textContent=address?`${address.slice(0,4)}…${address.slice(-3)}`:'';
+      walletAddress.title=address||'';
+      walletLogoutBtn.hidden=!address;
+      walletLogoutBtn.disabled=false;
+      walletLogoutBtn.setAttribute('aria-label',address?`Log out wallet ${address}`:'Log out');
+      walletArea.title=address?`Connected: ${address}`:'';
+    });
+    const slushOption=document.getElementById('walmoSlushOption');
+    slushOption.addEventListener('click',async()=>{
+      const error=document.getElementById('walmoLoginError');
+      error.textContent='';
+      const slush=dAppKit.stores.$wallets.get().find(wallet=>/slush/i.test(wallet.name));
+      if(!slush){error.textContent='Slush wallet is not available yet. Please try again.';return;}
+      slushOption.disabled=true;
+      document.getElementById('walmoLoginOverlay').classList.remove('open');
+      document.getElementById('walmoLoginOverlay').setAttribute('aria-hidden','true');
+      try{await dAppKit.connectWallet({wallet:slush});}
+      catch(error){
+        console.error('Slush connection failed',error);
+        document.getElementById('walmoLoginOverlay').classList.add('open');
+        document.getElementById('walmoLoginOverlay').setAttribute('aria-hidden','false');
+        document.getElementById('walmoLoginError').textContent='Slush could not connect. Please try again.';
+      }finally{slushOption.disabled=false;}
+    });
+    walletLogoutBtn.addEventListener('click',async()=>{
+      if(!walletArea.classList.contains('is-connected')) return;
+      walletLogoutBtn.disabled=true;
+      try{await dAppKit.disconnectWallet();}
+      catch(error){console.error('Wallet disconnect failed',error);walletLogoutBtn.disabled=false;}
+    });
+
+    function addMessage(text,type,memoriesUsed=[]){
+      const wrapper=document.createElement("div");
+      wrapper.className=`message ${type}`;
+      const content=document.createElement("div");
+      const bubble=document.createElement("div");
+      bubble.className="bubble";
+      bubble.textContent=text;
+      content.appendChild(bubble);
+      if(type==="ai") window.walmoMemoryChip?.(content, memoriesUsed);
+      wrapper.appendChild(content);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop=messagesEl.scrollHeight;
+    }
+
+    function showTyping(){
+      const wrapper=document.createElement("div");
+      wrapper.className="message ai";
+      wrapper.id="typingMessage";
+      wrapper.innerHTML=`<div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop=messagesEl.scrollHeight;
+    }
+
+    function removeTyping(){
+      const typing=document.getElementById("typingMessage");
+      if(typing)typing.remove();
+    }
+
+    function setSendButtonState(state){
+      sendBtn.classList.remove("state-voice","state-ready","state-generating");
+      sendBtn.classList.add(`state-${state}`);
+      if(state==="generating"){
+        sendBtn.setAttribute("aria-label","Stop generating");
+        sendBtn.title="Stop generating";
+      }else if(state==="ready"){
+        sendBtn.setAttribute("aria-label","Send message");
+        sendBtn.title="Send message";
+      }else{
+        sendBtn.setAttribute("aria-label","Voice input");
+        sendBtn.title="Voice input";
+      }
+    }
+
+    function updateSendButtonState(){
+      if(isGenerating){
+        setSendButtonState("generating");
+      }else if(input.value.trim()){
+        setSendButtonState("ready");
+      }else{
+        setSendButtonState("voice");
+      }
+    }
+
+    function handleSendButton(){
+      if(isGenerating){
+        if(chatAbortController){
+          chatAbortController.abort();
+        }
+        return;
+      }
+
+      if(input.value.trim()){
+        sendMessage();
+      }
+      // Empty-state voice icon is visual for now; no voice action is triggered.
+    }
+
+    window.handleSendButton=handleSendButton;
+
+    async function sendMessage(){
+      if(window.walmoAttachmentPromise)await window.walmoAttachmentPromise;
+      const message=input.value.trim();
+      if(!message || isGenerating)return;
+      const attachments=(window.walmoPendingAttachments||[]).slice();
+      window.walmoPendingAttachments=[];
+      window.walmoAttachmentLabel="";
+
+      const greeting=messagesEl.querySelector(".walmo-greeting");
+      if(greeting) greeting.remove();
+
+      addMessage(message,"user");
+      input.value="";
+      input.style.setProperty("height","34px","important");
+      input.style.setProperty("overflow-y","hidden","important");
+      const inputBox=input.closest(".input-box");
+      if(inputBox) inputBox.style.setProperty("height","50px","important");
+
+      isGenerating=true;
+      chatAbortController=new AbortController();
+      updateSendButtonState();
+      showTyping();
+
+      try{
+        const response=await fetch("/api/chat",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          signal:chatAbortController.signal,
+          body:JSON.stringify({
+            message,
+            attachments,
+            history,
+            preferences:window.walmoGetPreferences?window.walmoGetPreferences():{tone:"Default",length:"Balanced"},
+            identity:"walmo"
+          })
+        });
+
+        const data=await response.json();
+        removeTyping();
+
+        if(!response.ok||!data.success){
+          throw new Error(data.error||"Something went wrong.");
+        }
+
+        addMessage(data.reply,"ai",data.memoriesUsed);
+        history.push(
+          {role:"user",content:message},
+          {role:"assistant",content:data.reply}
+        );
+
+      }catch(error){
+        removeTyping();
+
+        if(error?.name==="AbortError"){
+          return;
+        }
+
+        addMessage("Sorry, I couldn't connect right now. Please try again.","ai");
+        console.error(error);
+      }finally{
+        isGenerating=false;
+        chatAbortController=null;
+        updateSendButtonState();
+        input.focus();
+      }
+    }
+
+    window.sendMessage=sendMessage;
+
+    input.addEventListener("keydown",event=>{
+      if(event.key==="Enter"&&!event.shiftKey&&window.matchMedia("(min-width: 900px)").matches){
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    input.addEventListener("input",updateSendButtonState);
+
+    updateSendButtonState();
+</script>
+
+<div aria-hidden="true" class="walmo-legal-overlay" id="walmoTermsPage">
+<div class="walmo-legal-inner">
+<button class="walmo-legal-close" onclick="closeWalmoLegal('terms')" type="button">Back</button>
+<h2>Terms Of Service</h2>
+<p>Last Updated: September 22, 2026</p>
+<h3>About Walmo</h3><p>Walmo is an AI assistant designed to remember information from your conversations and use relevant memories in future conversations.</p>
+<h3>AI Responses</h3><p>AI responses may be inaccurate or incomplete. You are responsible for how you use information provided by Walmo.</p>
+<h3>Your Content &amp; Memories</h3><p>Messages and relevant memory information may be processed through Walrus Memory to provide the memory features of Walmo.</p>
+<h3>Location Data</h3><p>Location names and time zones use <a href="https://open-meteo.com/en/licence" target="_blank" rel="noopener noreferrer">Open-Meteo / GeoNames data</a>.</p>
+<h3>Wallet Connection</h3><p>Connecting a wallet is optional. Walmo may use the connected wallet address as an identity for your memory space.</p>
+<h3>Acceptable Use</h3><p>You agree not to misuse Walmo, attempt to disrupt its services, or use it for unlawful activity.</p>
+<h3>Third-Party Services</h3><p>Walmo relies on third-party services for certain functionality, including AI processing and memory infrastructure.</p>
+<h3>Availability</h3><p>Walmo may change, suspend, or discontinue features at any time.</p>
+<h3>Changes to These Terms</h3><p>These terms may be updated from time to time.</p>
+<h3>Disclaimer</h3><p>Walmo is provided on an “as is” and “as available” basis without guarantees of uninterrupted or error-free operation.</p>
+<h3>Contact</h3><p>For questions about these terms, please contact the Walmo team.</p>
+</div>
+</div>
+<div aria-hidden="true" class="walmo-legal-overlay" id="walmoPrivacyPage">
+<div class="walmo-legal-inner">
+<button class="walmo-legal-close" onclick="closeWalmoLegal('privacy')" type="button">Back</button>
+<h2>Privacy Policy</h2>
+<p>Last Updated: September 22, 2026</p>
+<h3>Information We May Process</h3><p>Walmo may process messages, conversation context, memory information, and wallet address information when a wallet is connected.</p>
+<h3>How Information Is Used</h3><p>Information is used to provide the chatbot, maintain relevant memories, improve the experience, and operate the service.</p>
+<h3>Walrus Memory</h3><p>Memory data may be stored and processed using Walrus Memory infrastructure.</p>
+<h3>Wallet Information</h3><p>If you connect a wallet, the wallet address may be used as your identity for memory-related functionality.</p>
+<h3>AI Processing</h3><p>Messages may be sent to third-party AI infrastructure to generate responses.</p>
+<h3>Data Security</h3><p>Reasonable measures are used to protect information, but no online service can guarantee absolute security.</p>
+<h3>Third-Party Services</h3><p>Walmo may use third-party infrastructure providers to operate AI, wallet, and memory functionality.</p>
+<h3>Data Retention</h3><p>Information may be retained for as long as needed to provide the service and its memory functionality.</p>
+<h3>Your Choices</h3><p>You may choose not to connect a wallet and may stop using the service at any time.</p>
+<h3>Changes to This Policy</h3><p>This policy may be updated from time to time.</p>
+<h3>Contact</h3><p>For privacy questions, please contact the Walmo team.</p>
+</div>
+</div>
+<script>
+/* Resolve the signed-in account before loading browser-only chat history. */
+window.walmoStorageReady=(async function(){
+  let scope='';
+  let signedIn=false;
+  try{
+    const response=await fetch('/api/auth',{credentials:'same-origin',cache:'no-store'});
+    const session=await response.json();
+    if(response.ok && session.signedIn && /^[a-f0-9]{32}$/.test(session.storageId||'')){
+      scope='google:'+session.storageId;
+      signedIn=true;
+    }
+  }catch(error){console.warn('Chat storage identity could not be loaded',error);}
+  if(!scope){
+    let guest=localStorage.getItem('walmo_guest_storage_id_v1');
+    if(!guest){guest=crypto.randomUUID();localStorage.setItem('walmo_guest_storage_id_v1',guest);}
+    scope='guest:'+guest;
+  }
+  window.walmoStorageScope='walmo_chat:'+scope;
+  if(signedIn){
+    for(const [oldKey,newSuffix] of [
+      ['walmo_chat_recents_v1','recents'],
+      ['walmo_chat_trash_v1','trash'],
+      ['walmo_reply_preferences_v1','preferences']
+    ]){
+      const scopedKey=window.walmoStorageScope+':'+newSuffix;
+      const previous=localStorage.getItem(oldKey);
+      if(previous!==null && localStorage.getItem(scopedKey)===null) localStorage.setItem(scopedKey,previous);
+      if(previous!==null) localStorage.removeItem(oldKey);
+    }
+    const recentsKey=window.walmoStorageScope+':recents';
+    const trashKey=window.walmoStorageScope+':trash';
+    let syncTimer;
+    let pending=Promise.resolve();
+    function pushRecents(){
+      pending=pending.catch(()=>{}).then(async function(){
+          const chats=JSON.parse(localStorage.getItem(recentsKey)||'[]');
+          const trash=JSON.parse(localStorage.getItem(trashKey)||'[]');
+          const response=await fetch('/api/recents',{
+            method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({chats,trash})
+          });
+          if(!response.ok) throw new Error('Chat sync failed');
+      });
+      return pending;
+    }
+    window.walmoSyncRecents=function(){
+      clearTimeout(syncTimer);
+      syncTimer=setTimeout(function(){
+        pushRecents().catch(error=>console.warn('Recents are saved on this device; cloud sync failed',error));
+      },400);
+    };
+    window.walmoFlushRecents=async function(){
+      clearTimeout(syncTimer);
+      await pushRecents();
+    };
+    try{
+      const response=await fetch('/api/recents',{credentials:'same-origin',cache:'no-store'});
+      if(response.ok){
+        window.walmoCloudRecentsReady=true;
+        const data=await response.json();
+        if(data.saved){
+          localStorage.setItem(recentsKey,JSON.stringify(data.saved.chats||[]));
+          localStorage.setItem(trashKey,JSON.stringify(data.saved.trash||[]));
+        }else if(localStorage.getItem(recentsKey)){
+          window.walmoSyncRecents();
+        }
+      }
+    }catch(error){console.warn('Cloud chats could not be loaded',error);}
+  }
+  return window.walmoStorageScope;
+})();
+/* --- Walmo controller 2 --- */
+document.addEventListener("DOMContentLoaded", function(){
+  const btn=document.getElementById("newChatBtn");
+  if(btn){
+    btn.addEventListener("click", function(){
+      const messages=document.getElementById("messages");
+      const input=document.getElementById("messageInput");
+      if(messages) messages.innerHTML="";
+      if(input){
+        input.value="";
+        input.placeholder="Ask Walmo";
+      }
+    });
+  }
+});
+
+/* --- Walmo controller 7 --- */
+(function(){
+  function initSendIconFix(){
+    const btn=document.getElementById("sendBtn");
+    const input=document.getElementById("messageInput");
+    if(!btn || !input) return false;
+
+    const icons={
+      voice:btn.querySelector(".send-voice-icon"),
+      ready:btn.querySelector(".send-arrow-icon"),
+      generating:btn.querySelector(".send-stop-icon")
+    };
+
+    function sync(){
+      const state=btn.classList.contains("state-generating")
+        ? "generating"
+        : (input.value.trim() ? "ready" : "voice");
+
+      Object.values(icons).forEach(el=>{
+        if(el) el.style.setProperty("display","none","important");
+      });
+
+      if(icons[state]){
+        icons[state].style.setProperty("display","block","important");
+        icons[state].style.setProperty("visibility","visible","important");
+        icons[state].style.setProperty("opacity","1","important");
+      }
+    }
+
+    input.addEventListener("input",sync);
+    new MutationObserver(sync).observe(btn,{attributes:true,attributeFilter:["class"]});
+    sync();
+    return true;
+  }
+
+  if(!initSendIconFix()){
+    const timer=setInterval(function(){
+      if(initSendIconFix()) clearInterval(timer);
+    },50);
+    setTimeout(function(){clearInterval(timer)},5000);
+  }
+})();
+
+/* --- Walmo controller 8 --- */
+(function(){
+  function getAnonymousIdentity(){
+    let id=localStorage.getItem("walrus_mind_anonymous_id");
+    if(!id){
+      id="anon_"+(window.crypto && crypto.randomUUID ? crypto.randomUUID().replaceAll("-","") : Date.now());
+      localStorage.setItem("walrus_mind_anonymous_id",id);
+    }
+    return id;
+  }
+
+  async function fallbackSend(){
+    if(window.walmoAttachmentPromise)await window.walmoAttachmentPromise;
+    const input=document.getElementById("messageInput");
+    const btn=document.getElementById("sendBtn");
+    const messages=document.getElementById("messages");
+    if(!input || !btn) return;
+
+    const message=input.value.trim();
+    if(!message) return;
+
+    if(window.__wmFallbackGenerating){
+      if(window.__wmFallbackAbort) window.__wmFallbackAbort.abort();
+      return;
+    }
+
+    // Prefer the real app's send function when its module is loaded.
+    if(typeof window.sendMessage==="function"){
+      window.sendMessage();
+      return;
+    }
+
+    const attachments=(window.walmoPendingAttachments||[]).slice();
+    window.walmoPendingAttachments=[];
+    window.walmoAttachmentLabel="";
+
+    window.__wmFallbackGenerating=true;
+    window.__wmFallbackAbort=new AbortController();
+
+    if(messages){
+      const bubble=document.createElement("div");
+      bubble.className="message user";
+      bubble.innerHTML='<div class="bubble">'+message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")+'</div>';
+      messages.appendChild(bubble);
+      messages.scrollTop=messages.scrollHeight;
+    }
+    input.value="";
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+
+    fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      signal:window.__wmFallbackAbort.signal,
+      body:JSON.stringify({
+        message,
+        attachments,
+        history:[],
+        preferences:window.walmoGetPreferences?window.walmoGetPreferences():{tone:"Default",length:"Balanced"},
+        identity:"walmo"
+      })
+    })
+    .then(async r=>{
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok || !data.success) throw new Error(data.error || "Something went wrong.");
+      if(messages){
+        const bubble=document.createElement("div");
+        bubble.className="message ai";
+        bubble.innerHTML='<div class="bubble">'+String(data.reply||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")+'</div>';
+        window.walmoMemoryChip?.(bubble, data.memoriesUsed);
+        messages.appendChild(bubble);
+        messages.scrollTop=messages.scrollHeight;
+      }
+    })
+    .catch(err=>{
+      if(err && err.name==="AbortError") return;
+      if(messages){
+        const bubble=document.createElement("div");
+        bubble.className="message ai";
+        bubble.innerHTML='<div class="bubble">Sorry, I couldn\'t connect right now. Please try again.</div>';
+        window.walmoMemoryChip?.(bubble, data.memoriesUsed);
+        messages.appendChild(bubble);
+        messages.scrollTop=messages.scrollHeight;
+      }
+      console.error(err);
+    })
+    .finally(()=>{
+      window.__wmFallbackGenerating=false;
+      window.__wmFallbackAbort=null;
+    });
+  }
+
+  // Inline onclick calls this global. If the module later provides its own
+  // implementation, that implementation is used; otherwise fallbackSend runs.
+  window.handleSendButton=function(){
+    if(typeof window.sendMessage==="function"){
+      window.sendMessage();
+    }else{
+      fallbackSend();
+    }
+  };
+
+  const input=document.getElementById("messageInput");
+  if(input){
+    input.addEventListener("keydown",function(e){
+      if(e.key==="Enter" && !e.shiftKey && window.matchMedia("(min-width: 900px)").matches){
+        e.preventDefault();
+        window.handleSendButton();
+      }
+    });
+  }
+})();
+
+/* --- Walmo controller 9 --- */
+function openWalmoLegal(type){
+  const el=document.getElementById(type==='terms'?'walmoTermsPage':'walmoPrivacyPage');
+  if(el){el.classList.add('open');el.setAttribute('aria-hidden','false');}
+}
+function closeWalmoLegal(type){
+  const el=document.getElementById(type==='terms'?'walmoTermsPage':'walmoPrivacyPage');
+  if(el){el.classList.remove('open');el.setAttribute('aria-hidden','true');}
+}
+
+/* --- Walmo controller 10 --- */
+(function(){
+  function init(){
+    const panel=document.getElementById("walmoMenuPanel");
+    const button=document.getElementById("chatMenuBtn");
+    if(!panel || !button) return;
+
+    button.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(panel.classList.contains("open")) return;
+      panel.classList.add("open");
+      panel.setAttribute("aria-hidden","false");
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+  else init();
+})();
+
+/* --- Walmo controller 11 --- */
+(function(){
+  function hideGreeting(){
+    const messages=document.getElementById("messages");
+    if(!messages) return;
+    messages.querySelectorAll(".walmo-greeting").forEach(function(el){ el.remove(); });
+  }
+  function init(){
+    const send=document.getElementById("sendBtn");
+    const input=document.getElementById("messageInput");
+    if(send) send.addEventListener("click",function(){
+      if(input && input.value.trim()) hideGreeting();
+    },true);
+    if(input) input.addEventListener("keydown",function(e){
+      if(e.key==="Enter" && !e.shiftKey && window.matchMedia("(min-width: 900px)").matches && input.value.trim()) hideGreeting();
+    },true);
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+  else init();
+})();
+
+/* --- Walmo controller 16 --- */
+(function(){
+  const attachBtn=document.getElementById("attachBtn");
+  const overlay=document.getElementById("walmoAttachOverlay");
+  const closeBtn=document.getElementById("walmoAttachClose");
+  const cameraInput=document.getElementById("walmoCameraInput");
+  const photosInput=document.getElementById("walmoPhotosInput");
+  const filesInput=document.getElementById("walmoFilesInput");
+  if(!attachBtn||!overlay||!closeBtn||!cameraInput||!photosInput||!filesInput) return;
+
+  function openAttach(){ overlay.classList.add("open"); overlay.setAttribute("aria-hidden","false"); }
+  function closeAttach(){ overlay.classList.remove("open"); overlay.setAttribute("aria-hidden","true"); }
+
+  attachBtn.addEventListener("click",openAttach);
+  closeBtn.addEventListener("click",closeAttach);
+  overlay.addEventListener("click",function(e){ if(e.target===overlay) closeAttach(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeAttach(); });
+
+  document.getElementById("walmoCameraOption").addEventListener("click",function(){ closeAttach(); cameraInput.click(); });
+  document.getElementById("walmoPhotosOption").addEventListener("click",function(){ closeAttach(); photosInput.click(); });
+  document.getElementById("walmoFilesOption").addEventListener("click",function(){ closeAttach(); filesInput.click(); });
+
+  window.walmoPendingAttachments=[];
+  window.walmoAttachmentLabel="";
+  window.walmoAttachmentPromise=null;
+  function readDataURL(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(new Error("Could not read the file."));
+      reader.readAsDataURL(file);
+    });
+  }
+  async function showSelected(fileList){
+    const files=Array.from(fileList||[]);
+    if(!files.length)return;
+    if(window.walmoPendingAttachments.length+files.length>3){alert("Choose up to 3 files.");return;}
+    const prepared=[];
+    try{
+      for(const file of files){
+        const type=file.type||(/\.txt$/i.test(file.name)?"text/plain":"");
+        let data;
+        if(type==="text/plain"){
+          if(file.size>80000)throw new Error("Text files must be under 80 KB.");
+          data=await file.text();
+        }else if(["image/jpeg","image/png","image/webp","image/gif","application/pdf"].includes(type)){
+          if(file.size>1800000)throw new Error("Images and PDFs must be under 1.8 MB.");
+          data=await readDataURL(file);
+        }else throw new Error("Choose an image, PDF, or plain text file.");
+        prepared.push({name:file.name,type,data});
+      }
+    }catch(error){alert(error.message);return;}
+    const total=[...window.walmoPendingAttachments,...prepared].reduce((size,item)=>size+item.data.length,0);
+    if(total>2800000){alert("Total attachments must be under 2.8 MB after encoding.");return;}
+    window.walmoPendingAttachments.push(...prepared);
+    const input=document.getElementById("messageInput");
+    if(!input)return;
+    let draft=input.value;
+    if(window.walmoAttachmentLabel && draft.endsWith(window.walmoAttachmentLabel)){
+      draft=draft.slice(0,-window.walmoAttachmentLabel.length).trimEnd();
+    }
+    window.walmoAttachmentLabel="📎 "+window.walmoPendingAttachments.map(item=>item.name).join(", ");
+    input.value=draft?draft+"\n"+window.walmoAttachmentLabel:window.walmoAttachmentLabel;
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+    input.focus();
+  }
+  function onFiles(input){
+    const selected=Array.from(input.files||[]);
+    input.value="";
+    window.walmoAttachmentPromise=showSelected(selected).finally(()=>{window.walmoAttachmentPromise=null;});
+  }
+  cameraInput.addEventListener("change",function(){onFiles(cameraInput);});
+  photosInput.addEventListener("change",function(){onFiles(photosInput);});
+  filesInput.addEventListener("change",function(){onFiles(filesInput);});
+})();
+
+/* --- Walmo controller 17 --- */
+(function(){
+  const input = document.getElementById("messageInput");
+  if(!input) return;
+
+  input.placeholder = "Ask Walmo";
+
+  function setReplyPlaceholder(){
+    input.placeholder = "Reply To Walmo";
+  }
+
+  const sendBtn = document.getElementById("sendBtn");
+  if(sendBtn){
+    sendBtn.addEventListener("click", function(){
+      setTimeout(setReplyPlaceholder, 0);
+    }, true);
+  }
+
+  input.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && !e.shiftKey && window.matchMedia("(min-width: 900px)").matches){
+      setTimeout(setReplyPlaceholder, 0);
+    }
+  }, true);
+})();
+
+/* --- Walmo controller 18 --- */
+(function(){
+  function showGreeting(){
+    const messages=document.getElementById("messages");
+    if(!messages) return;
+    if(messages.querySelector(".message:not(.walmo-greeting)")) return;
+    if(messages.querySelector(".walmo-greeting")) return;
+    const wrapper=document.createElement("div");
+    wrapper.className="message ai walmo-greeting";
+    wrapper.innerHTML="<div><div class=\"bubble\"><span class=\"walmo-greeting-title\">Your AI <strong>Your Memory</strong></span><span class=\"walmo-memory-orb\" aria-hidden=\"true\"><svg class=\"walmo-face-mark\" viewBox=\"0 0 120 120\" focusable=\"false\"><path class=\"walmo-w-mark\" d=\"M25 43 C29 58 36 65 44 65 C52 65 54 47 60 43 C66 39 69 65 78 65 C86 65 91 55 96 38\"/><path class=\"walmo-smile-mark\" d=\"M48 82 C55 89 66 89 73 82\"/></svg><span class=\"walmo-sparkles\"></span></span><span class=\"walmo-greeting-second-line\">Track Your Projects. Walmo Remembers What Matters.</span></div></div>";
+    messages.appendChild(wrapper);
+    messages.scrollTop=0;
+  }
+  function init(){
+    const btn=document.getElementById("newChatBtn");
+    const messages=document.getElementById("messages");
+    if(!btn || !messages) return;
+    function syncGreeting(){
+      if(messages.querySelector(".message:not(.walmo-greeting)")){
+        messages.querySelectorAll(".walmo-greeting").forEach(function(el){el.remove();});
+      }
+    }
+    new MutationObserver(syncGreeting).observe(messages,{childList:true});
+    syncGreeting();
+    btn.addEventListener("click",function(){
+      const panel=document.getElementById("walmoMenuPanel");
+      if(panel && window.matchMedia("(max-width:899px)").matches){
+        panel.classList.remove("open");
+        panel.setAttribute("aria-hidden","true");
+      }
+      setTimeout(showGreeting,0);
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+  else init();
+})();
+
+/* --- Walmo controller 19 --- */
+(function(){
+  function init(){
+    const panel=document.getElementById("walmoMenuPanel");
+    const closeBtn=document.getElementById("walmoSidebarClose");
+    if(!panel || !closeBtn) return;
+    closeBtn.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      panel.classList.remove("open");
+      panel.setAttribute("aria-hidden","true");
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+  else init();
+})();
+
+/* --- Walmo controller 20 --- */
+(function(){
+  const panel = document.getElementById("walmoMenuPanel");
+  const menuBtn = document.getElementById("chatMenuBtn");
+  if(!panel || !menuBtn) return;
+
+  document.addEventListener("click", function(e){
+    if(panel.getAttribute("aria-hidden") !== "false") return;
+    const contextMenu = document.getElementById("walmoChatContextMenu");
+    if(panel.contains(e.target) || menuBtn.contains(e.target) || (contextMenu && contextMenu.contains(e.target))) return;
+
+    panel.classList.remove("open");
+    panel.setAttribute("aria-hidden","true");
+  });
+})();
+
+/* --- Walmo controller 21 --- */
+window.walmoStorageReady.then(function(){
+  const STORAGE_KEY=window.walmoStorageScope+":recents";
+  const TRASH_KEY=window.walmoStorageScope+":trash";
+  const TRASH_LIFETIME=30*24*60*60*1000;
+  const messages=document.getElementById("messages");
+  const input=document.getElementById("messageInput");
+  const newChat=document.getElementById("newChatBtn");
+  const menuPanel=document.getElementById("walmoMenuPanel");
+  const recentList=document.getElementById("walmoRecentChats");
+  const pinnedList=document.getElementById("walmoPinnedChats");
+  if(!messages || !newChat || !menuPanel || !recentList || !pinnedList) return;
+
+  let chats=[];
+  try{ chats=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); }catch(e){ chats=[]; }
+  if(!Array.isArray(chats)) chats=[];
+
+  function readTrash(){
+    try{
+      const value=JSON.parse(localStorage.getItem(TRASH_KEY)||"[]");
+      return Array.isArray(value)?value.filter(item=>item && item.chat && item.chat.id && Number(item.deletedAt)>Date.now()-TRASH_LIFETIME):[];
+    }catch(e){return [];}
+  }
+  function writeTrash(items){
+    try{localStorage.setItem(TRASH_KEY,JSON.stringify(items));}catch(e){console.warn("Trash could not be saved",e);}
+    if(window.walmoSyncRecents) window.walmoSyncRecents();
+    document.dispatchEvent(new Event('walmo:trash-updated'));
+  }
+  writeTrash(readTrash());
+
+  let currentId="chat_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+  let longPressTimer=null;
+  let activeChatId=null;
+  let longPressTriggered=false;
+
+  function formatChatTitle(value){
+    return String(value||"New Chat").replace(/(^|[\s\-–—/])([a-z])/gi,function(_,separator,letter){
+      return separator+letter.toUpperCase();
+    });
+  }
+  chats.forEach(function(chat){chat.title=formatChatTitle(chat.title);});
+
+  function saveAll(){
+    chats.forEach(function(chat){chat.title=formatChatTitle(chat.title);});
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(chats.slice(0,50)));
+    if(window.walmoSyncRecents) window.walmoSyncRecents();
+  }
+
+  function escapeHtml(value){
+    return String(value).replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function topicName(message){
+    const clean=String(message||"").replace(/\s+/g," ").trim();
+    if(!clean) return "New Chat";
+
+    const lower=clean.toLowerCase();
+    const titleCase=function(value){
+      return String(value||"").replace(/\b\w/g,function(ch){ return ch.toUpperCase(); });
+    };
+    const trimTitle=function(value){
+      const text=String(value||"").replace(/\s+/g," ").trim();
+      return text.length>32 ? text.slice(0,32).replace(/\s+\S*$/,"…") : text;
+    };
+
+    // Personal introductions / identity-focused chats.
+    if(/\b(my name is|i am|i'm|about myself|about me)\b/.test(lower) &&
+       /\b(name|developer|designer|creator|student|engineer|work|working|myself|me)\b/.test(lower)){
+      return "About Me";
+    }
+
+    // Project-focused chats: use the project name instead of the opening words.
+    let match=clean.match(/\b(?:working on|work(?:ing)? on|building|build(?:ing)?|developing|develop(?:ing)?)\s+(?:the\s+)?([A-Za-z0-9][A-Za-z0-9._-]*(?:\s+(?:project|app|website|site|platform))?)/i);
+    if(match){
+      let project=match[1].trim();
+      if(!/\b(project|app|website|site|platform)$/i.test(project)) project += " Project";
+      return trimTitle(titleCase(project));
+    }
+
+    // Explicit topic phrases.
+    match=clean.match(/\b(?:about|regarding|discussing|talk(?:ing)? about)\s+(.+?)(?:[.!?]|$)/i);
+    if(match){
+      return trimTitle(titleCase(match[1].trim()));
+    }
+
+    // Keep a concise fallback when the topic cannot be inferred from a known pattern.
+    const sentence=clean.split(/[.!?]/)[0].trim();
+    const words=sentence.split(/\s+/).slice(0,6).join(" ");
+    return trimTitle(words);
+  }
+
+  function currentMessages(){
+    return Array.from(messages.querySelectorAll(".message:not(.walmo-greeting)"))
+      .map(function(el){
+        const type=el.classList.contains("user")?"user":"ai";
+        const bubble=el.querySelector(".bubble");
+        return {role:type==="user"?"user":"assistant",content:bubble?bubble.textContent.trim():"",timestamp:el.dataset.walmoTimestamp||"",memoriesUsed:Array.from(el.querySelectorAll(".walmo-memory-chip li")).map(li=>({text:li.textContent}))};
+      })
+      .filter(x=>x.content);
+  }
+
+  function saveCurrent(){
+    const items=currentMessages();
+    const userMsg=items.find(x=>x.role==="user");
+    if(!userMsg) return;
+
+    const existing=chats.find(c=>c.id===currentId);
+    const chat={
+      id:currentId,
+      title:formatChatTitle(existing?.title || topicName(userMsg.content)),
+      messages:items,
+      pinned:existing?.pinned===true,
+      updatedAt:Date.now()
+    };
+    if(existing){
+      Object.assign(existing,chat);
+    }else{
+      chats.unshift(chat);
+    }
+    chats.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    saveAll();
+    renderLists();
+  }
+
+  function loadChat(chat){
+    currentId=chat.id;
+    messages.innerHTML="";
+    (chat.messages||[]).forEach(function(m){
+      const wrapper=document.createElement("div");
+      wrapper.className="message "+(m.role==="user"?"user":"ai");
+      if(m.timestamp) wrapper.dataset.walmoTimestamp=m.timestamp;
+      const inner=document.createElement("div");
+      const bubble=document.createElement("div");
+      bubble.className="bubble";
+      bubble.textContent=m.content;
+      inner.appendChild(bubble);
+      if(m.role!=="user")window.walmoMemoryChip?.(inner,m.memoriesUsed);
+      wrapper.appendChild(inner);
+      messages.appendChild(wrapper);
+    });
+    messages.scrollTop=messages.scrollHeight;
+    if(input) input.value="";
+    renderLists();
+  }
+
+  function makeItem(chat){
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="walmo-chat-item"+(chat.pinned?" pinned":"");
+    btn.dataset.chatId=chat.id;
+    btn.innerHTML=(chat.pinned?'<span class="walmo-pinned-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8 8 0 0 1-8 8 8.6 8.6 0 0 1-3.4-.7L4 20l1.2-4.6A8 8 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></svg></span>':'')+'<span class="walmo-chat-item-title">'+escapeHtml(chat.title)+'</span>';
+
+    btn.addEventListener("click",function(e){
+      if(longPressTriggered){ longPressTriggered=false; e.preventDefault(); e.stopPropagation(); return; }
+      loadChat(chat);
+    });
+
+    btn.addEventListener("contextmenu",function(e){
+      e.preventDefault();
+      showActions(chat.id,e.clientX,e.clientY,btn);
+    });
+
+    btn.addEventListener("pointerdown",function(e){
+      if(e.pointerType==="mouse") return;
+      clearTimeout(longPressTimer);
+      longPressTriggered=false;
+      longPressTimer=setTimeout(function(){
+        longPressTriggered=true;
+        showActions(chat.id,e.clientX,e.clientY,btn);
+      },550);
+    });
+    ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+      btn.addEventListener(ev,function(){clearTimeout(longPressTimer);});
+    });
+    return btn;
+  }
+
+  function renderLists(){
+    pinnedList.innerHTML="";
+    recentList.innerHTML="";
+    const pinnedAll=chats.filter(c=>c.pinned).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    if(pinnedAll.length>3){
+      pinnedAll.slice(3).forEach(c=>{c.pinned=false;});
+      saveAll();
+    }
+    const pinned=pinnedAll.slice(0,3);
+    const recent=chats.filter(c=>!c.pinned).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    menuPanel.classList.toggle("has-pinned-chats",pinned.length>0);
+    menuPanel.classList.toggle("has-recent-chats",recent.length>0);
+    menuPanel.dataset.pinnedCount=String(pinned.length);
+    menuPanel.dataset.recentCount=String(recent.length);
+    pinned.forEach(c=>pinnedList.appendChild(makeItem(c)));
+    recent.forEach(c=>recentList.appendChild(makeItem(c)));
+  }
+
+  function closeActions(){
+    const cm=document.getElementById("walmoChatContextMenu");
+    if(cm){ cm.classList.remove("open"); cm.querySelector(".walmo-rename-form")?.setAttribute("hidden",""); }
+  }
+
+  function showActions(id,x,y,anchorBtn){
+    window.getSelection()?.removeAllRanges();
+    activeChatId=id;
+    let cm=document.getElementById("walmoChatContextMenu");
+    if(!cm){
+      cm=document.createElement("div");
+      cm.id="walmoChatContextMenu";
+      cm.setAttribute("role","menu");
+      cm.setAttribute("aria-label","Chat Name");
+      cm.innerHTML='<div class="walmo-action-heading"><strong>Chat Name</strong><span class="walmo-action-chat-title"></span></div>'+
+        '<button type="button" role="menuitem" data-action="pin"><span class="walmo-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3h8l-1 6 3 3-4 1v7l-2 1-2-1v-7l-4-1 3-3z"/></svg></span><span class="walmo-action-label"></span></button>'+
+        '<button type="button" role="menuitem" data-action="rename"><span class="walmo-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.5 19.5h4L19 9a2.12 2.12 0 0 0 0-3L18 5a2.12 2.12 0 0 0-3 0L4.5 15.5v4Z"/><path d="m13.5 6.5 4 4"/></svg></span><span class="walmo-action-label">Rename</span></button>'+
+        '<form class="walmo-rename-form" hidden><input id="walmoChatRenameInput" aria-label="New chat title" maxlength="60" autocomplete="off"><button class="walmo-rename-save" type="submit" aria-label="Save title">✓</button></form>'+
+        '<button type="button" role="menuitem" data-action="delete"><span class="walmo-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg></span><span class="walmo-action-label">Delete</span></button>';
+      document.body.appendChild(cm);
+      cm.addEventListener("click",function(e){
+        const action=e.target.closest("button")?.dataset.action;
+        if(!action) return;
+        const chat=chats.find(c=>c.id===activeChatId);
+        if(!chat) return;
+        if(action==="pin"){
+          if(!chat.pinned && chats.filter(c=>c.pinned).length>=3){
+            closeActions();
+            return;
+          }
+          chat.pinned=!chat.pinned;
+          chat.updatedAt=Date.now();
+          saveAll();
+          renderLists();
+        }else if(action==="rename"){
+          const form=cm.querySelector(".walmo-rename-form");
+          const field=cm.querySelector("#walmoChatRenameInput");
+          field.value=chat.title;
+          form.removeAttribute("hidden");
+          field.focus();
+          field.select();
+          return;
+        }else if(action==="delete"){
+          const trash=readTrash();
+          trash.unshift({chat:JSON.parse(JSON.stringify(chat)),deletedAt:Date.now()});
+          writeTrash(trash);
+          chats=chats.filter(c=>c.id!==activeChatId);
+          saveAll();
+          if(activeChatId===currentId){
+            currentId="chat_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+            messages.innerHTML="";
+          }
+          renderLists();
+        }
+        closeActions();
+      });
+      cm.querySelector(".walmo-rename-form").addEventListener("submit",function(e){
+        e.preventDefault();
+        const chat=chats.find(c=>c.id===activeChatId);
+        const next=cm.querySelector("#walmoChatRenameInput").value.trim();
+        if(chat && next){ chat.title=formatChatTitle(next.slice(0,60)); saveAll(); renderLists(); closeActions(); }
+      });
+      cm.addEventListener("keydown",function(e){ if(e.key==="Escape"){ closeActions(); e.stopPropagation(); } });
+    }
+    cm.querySelector(".walmo-rename-form").setAttribute("hidden","");
+    cm.querySelector(".walmo-action-chat-title").textContent=chats.find(c=>c.id===id)?.title||"";
+    cm.classList.add("open");
+    const panel=document.getElementById("walmoMenuPanel");
+    const anchorRect=anchorBtn ? anchorBtn.getBoundingClientRect() : null;
+    const panelRect=panel ? panel.getBoundingClientRect() : null;
+    const menuRect=cm.getBoundingClientRect();
+    if(anchorRect && panelRect){
+      const right=panelRect.right-menuRect.width-10;
+      const top=anchorRect.top;
+      cm.style.left=Math.max(10,Math.min(Math.max(panelRect.left+10,right),window.innerWidth-menuRect.width-10))+"px";
+      cm.style.top=Math.max(10,Math.min(top,window.innerHeight-menuRect.height-10))+"px";
+    }else{
+      cm.style.left=Math.min(x,window.innerWidth-menuRect.width-10)+"px";
+      cm.style.top=Math.min(y,window.innerHeight-menuRect.height-10)+"px";
+    }
+    const pinAction=cm.querySelector('[data-action="pin"] .walmo-action-label');
+    if(pinAction) pinAction.textContent=chats.find(c=>c.id===id)?.pinned ? "Unpin" : "Pin";
+  }
+
+  document.addEventListener("click",function(e){
+    const cm=document.getElementById("walmoChatContextMenu");
+    if(cm && !cm.contains(e.target)) closeActions();
+  });
+
+  // Save the current chat before the existing New Chat handler clears the messages.
+  newChat.addEventListener("click",function(){
+    saveCurrent();
+    currentId="chat_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+  },true);
+
+  // Save whenever user/AI messages are added.
+  new MutationObserver(function(){
+    if(document.getElementById("typingMessage")) return;
+    saveCurrent();
+  }).observe(messages,{childList:true,subtree:true});
+
+  document.addEventListener("walmo:import-chat",function(e){
+    const imported=e.detail?.chat;
+    if(!imported) return;
+    saveCurrent();
+    chats.unshift({...imported,title:formatChatTitle(imported.title)});
+    saveAll();
+    renderLists();
+  });
+
+  document.addEventListener("walmo:restore-chat",function(e){
+    const id=e.detail?.id;
+    const trash=readTrash();
+    const item=trash.find(entry=>entry.chat.id===id);
+    if(!item) return;
+    const restored={...item.chat,updatedAt:Date.now()};
+    if(chats.some(c=>c.id===id)) restored.id="chat_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+    chats.unshift(restored);
+    saveAll();
+    writeTrash(trash.filter(entry=>entry!==item));
+    renderLists();
+  });
+  document.addEventListener("walmo:delete-trashed-chat",function(e){
+    writeTrash(readTrash().filter(entry=>entry.chat.id!==e.detail?.id));
+  });
+  document.addEventListener("walmo:empty-trash",function(){
+    writeTrash([]);
+  });
+
+  document.addEventListener("walmo:open-saved-chat",function(e){
+    const chat=chats.find(c=>c.id===e.detail?.id);
+    if(!chat) return;
+    saveCurrent();
+    loadChat(chat);
+    menuPanel.classList.remove("open");
+    menuPanel.setAttribute("aria-hidden","true");
+  });
+
+  renderLists();
+});
+
+/* --- Walmo controller 23 --- */
+(function(){
+  const copyIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  const checkIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  async function copyText(text){
+    // Prefer the modern Clipboard API, but fall back if the browser/WebView blocks it.
+    if(navigator.clipboard && typeof navigator.clipboard.writeText==='function'){
+      try{
+        await navigator.clipboard.writeText(text);
+        return true;
+      }catch(e){
+        // Continue to the legacy selection-based fallback below.
+      }
+    }
+
+    const area=document.createElement('textarea');
+    area.value=text;
+    area.setAttribute('aria-hidden','true');
+    area.style.position='fixed';
+    area.style.left='-9999px';
+    area.style.top='0';
+    area.style.opacity='0';
+    area.style.pointerEvents='none';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0,area.value.length);
+
+    let copied=false;
+    try{
+      copied=document.execCommand('copy');
+    }finally{
+      area.remove();
+    }
+    if(!copied) throw new Error('Clipboard copy was blocked by the browser.');
+    return true;
+  }
+
+  function formatTime(timestamp){
+    const date=new Date(Number(timestamp));
+    if(Number.isNaN(date.getTime())) return '';
+
+    // Calendar days are evaluated in the viewer's current browser/device time zone.
+    const now=new Date();
+    const time=new Intl.DateTimeFormat('en-US',{
+      hour:'numeric',minute:'2-digit',hour12:true
+    }).format(date).replace(/\u202f/g,' ');
+    const sameDay=function(a,b){
+      return a.getFullYear()===b.getFullYear() &&
+        a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+    };
+    if(sameDay(date,now)) return 'Today, '+time;
+    const yesterday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
+    if(sameDay(date,yesterday)) return 'Yesterday, '+time;
+
+    const weekday=new Intl.DateTimeFormat('en-US',{weekday:'short'}).format(date);
+    const parts=new Intl.DateTimeFormat('en-US',{
+      day:'numeric',month:'short',year:'numeric'
+    }).formatToParts(date);
+    const part=function(type){
+      const item=parts.find(function(value){return value.type===type;});
+      return item ? item.value : '';
+    };
+    return weekday+', '+time+' • '+part('day')+' '+part('month')+' '+part('year');
+  }
+
+  function removeAllMeta(){
+    document.querySelectorAll('.walmo-ai-meta-row').forEach(function(row){row.remove();});
+    document.querySelectorAll('.walmo-ai-copy-wrap').forEach(function(content){
+      content.classList.remove('walmo-ai-copy-wrap');
+    });
+  }
+
+  function addMessageMeta(message){
+    if(!message || !message.classList.contains('ai')) return;
+    if(message.classList.contains('walmo-greeting')) return;
+    if(message.id==='typingMessage') return;
+
+    const bubble=message.querySelector('.bubble');
+    if(!bubble || bubble.querySelector('.typing')) return;
+    const content=bubble.parentElement;
+    if(!content) return;
+
+    if(!message.dataset.walmoTimestamp){
+      message.dataset.walmoTimestamp=String(Date.now());
+    }
+
+    content.classList.add('walmo-ai-copy-wrap');
+
+    const row=document.createElement('div');
+    row.className='walmo-ai-meta-row';
+
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='walmo-copy-btn';
+    btn.setAttribute('aria-label','Copy response');
+    btn.title='Copy response';
+    btn.innerHTML=copyIcon;
+
+    btn.addEventListener('click',async function(){
+      try{
+        await copyText(bubble.textContent || '');
+        btn.classList.add('walmo-copied');
+        btn.innerHTML=checkIcon;
+        btn.setAttribute('aria-label','Copied');
+        setTimeout(function(){
+          btn.classList.remove('walmo-copied');
+          btn.innerHTML=copyIcon;
+          btn.setAttribute('aria-label','Copy response');
+        },1500);
+      }catch(e){
+        console.error('Copy failed',e);
+      }
+    });
+
+    const time=document.createElement('span');
+    time.className='walmo-ai-time';
+    time.dataset.walmoTimestamp=message.dataset.walmoTimestamp;
+    time.textContent=formatTime(message.dataset.walmoTimestamp);
+
+    row.appendChild(btn);
+    row.appendChild(time);
+    content.appendChild(row);
+  }
+
+  function refreshAllMeta(){
+    removeAllMeta();
+    const messages=document.getElementById('messages');
+    if(!messages) return;
+    const all=Array.from(messages.querySelectorAll('.message.ai'));
+    all.forEach(addMessageMeta);
+  }
+
+  let queued=false;
+  function queueRefresh(){
+    if(queued) return;
+    queued=true;
+    setTimeout(function(){
+      queued=false;
+      refreshAllMeta();
+    },0);
+  }
+
+  queueRefresh();
+
+  function refreshWalmoLocalTimes(){
+    document.querySelectorAll('.walmo-ai-time[data-walmo-timestamp]').forEach(function(el){
+      el.textContent=formatTime(el.dataset.walmoTimestamp);
+    });
+  }
+
+  // Recalculate from the stored message time using the viewer's live device/browser time zone.
+  // This also updates Today/Yesterday when the viewer crosses local midnight.
+  setInterval(refreshWalmoLocalTimes,30000);
+  window.addEventListener('focus',refreshWalmoLocalTimes);
+  window.addEventListener('pageshow',refreshWalmoLocalTimes);
+  document.addEventListener('visibilitychange',function(){
+    if(!document.hidden) refreshWalmoLocalTimes();
+  });
+
+  const messages=document.getElementById('messages');
+  if(messages){
+    // Only watch messages being added/removed. Watching the whole subtree would also
+    // react to the Copy icon changing to the check icon and rebuild the button mid-click.
+    new MutationObserver(queueRefresh).observe(messages,{childList:true});
+  }
+})();
+
+/* --- Walmo controller 24 --- */
+(function(){
+  const input=document.getElementById('messageInput');
+  if(!input) return;
+  const box=input.closest('.input-box');
+  if(!box) return;
+
+  function setImportant(el,prop,value){
+    el.style.setProperty(prop,value,'important');
+  }
+
+  function resizeComposer(){
+    /* Reset first so scrollHeight can shrink as well as grow. */
+    setImportant(input,'height','34px');
+    setImportant(input,'overflow-y','hidden');
+
+    const textareaHeight=Math.min(234,Math.max(34,input.scrollHeight));
+    setImportant(input,'height',textareaHeight+'px');
+    setImportant(input,'overflow-y',input.scrollHeight>234?'auto':'hidden');
+
+    const cs=getComputedStyle(box);
+    const verticalChrome=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0)+
+      (parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
+    const boxHeight=Math.min(250,Math.max(50,textareaHeight+verticalChrome));
+    setImportant(box,'height',boxHeight+'px');
+  }
+
+  function resetIfEmpty(){
+    if(!input.value){
+      setImportant(input,'height','34px');
+      setImportant(input,'overflow-y','hidden');
+      setImportant(box,'height','50px');
+    }
+  }
+
+  input.addEventListener('input',resizeComposer,true);
+  input.addEventListener('paste',function(){setTimeout(resizeComposer,0);},true);
+  input.addEventListener('cut',function(){setTimeout(resizeComposer,0);},true);
+
+  /* Existing send/new-chat code clears the textarea; restore the compact state after it does. */
+  document.addEventListener('click',function(){setTimeout(resetIfEmpty,0);},true);
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey&&window.matchMedia("(min-width: 900px)").matches) setTimeout(resetIfEmpty,0);
+  },true);
+
+  resizeComposer();
+})();
+
+/* --- Walmo controller 25 --- */
+(function(){
+  const input=document.getElementById('messageInput');
+  if(!input) return;
+  const box=input.closest('.input-box');
+  if(!box) return;
+
+  function syncPlusAlignment(){
+    const lineHeight=parseFloat(getComputedStyle(input).lineHeight)||20;
+    const paddingTop=parseFloat(getComputedStyle(input).paddingTop)||0;
+    const paddingBottom=parseFloat(getComputedStyle(input).paddingBottom)||0;
+    const singleLineLimit=lineHeight+paddingTop+paddingBottom+2;
+    box.classList.toggle('walmo-plus-compact',input.scrollHeight<=singleLineLimit);
+  }
+
+  input.addEventListener('input',function(){requestAnimationFrame(syncPlusAlignment);},true);
+  input.addEventListener('paste',function(){setTimeout(syncPlusAlignment,0);},true);
+  input.addEventListener('cut',function(){setTimeout(syncPlusAlignment,0);},true);
+  document.addEventListener('click',function(){setTimeout(syncPlusAlignment,0);},true);
+  window.addEventListener('resize',syncPlusAlignment);
+  syncPlusAlignment();
+})();
+
+
+/* --- Working sidebar navigation --- */
+window.walmoStorageReady.then(function(){
+  const overlay=document.getElementById('walmoNavOverlay');
+  const content=document.getElementById('walmoNavContent');
+  const title=document.getElementById('walmoNavTitle');
+  const description=document.getElementById('walmoNavDescription');
+  const closeButton=document.getElementById('walmoNavClose');
+  if(!overlay || !content || !title || !description || !closeButton) return;
+  const chatKey=window.walmoStorageScope+':recents';
+  const preferenceKey=window.walmoStorageScope+':preferences';
+  const trashKey=window.walmoStorageScope+':trash';
+  const trashLifetime=30*24*60*60*1000;
+  function preferences(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(preferenceKey)||'{}');
+      return {tone:['Friendly','Default','Expert'].includes(raw.tone)?raw.tone:'Default',length:['Balanced','Short','Detailed'].includes(raw.length)?raw.length:'Balanced'};
+    }catch(e){return {tone:'Default',length:'Balanced'};}
+  }
+  window.walmoGetPreferences=preferences;
+  let lastTrigger=null;
+
+  function savedChats(){
+    try{
+      const value=JSON.parse(localStorage.getItem(chatKey)||'[]');
+      return Array.isArray(value) ? value.filter(c=>c && c.id && Array.isArray(c.messages)) : [];
+    }catch(e){ return []; }
+  }
+  function close(){
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden','true');
+    content.replaceChildren();
+    if(lastTrigger) lastTrigger.focus();
+  }
+  function open(name,trigger){
+    lastTrigger=trigger;
+    title.textContent=name;
+    description.textContent=name==='Personalize'?'Choose How Walmo Replies':name==='Trash'?'Deleted Chats Stay Here For 30 Days':'Find A Conversation By Title Or Message';
+    content.replaceChildren();
+    content.classList.toggle('walmo-trash-scroll',name==='Trash');
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden','false');
+    if(name==='Personalize') renderPersonalize();
+    else if(name==='Trash') renderTrash();
+    else renderSearch();
+  }
+  function empty(text){
+    const el=document.createElement('div');
+    el.className='walmo-nav-empty';
+    el.textContent=text;
+    return el;
+  }
+  function chatButton(chat){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='walmo-nav-item';
+    const details=document.createElement('span');
+    const name=document.createElement('strong');
+    name.textContent=String(chat.title||'Untitled chat').replace(/(^|[\s\-–—/])([a-z])/gi,(_,separator,letter)=>separator+letter.toUpperCase());
+    const meta=document.createElement('small');
+    meta.textContent=(chat.pinned?'Pinned · ':'')+(chat.messages?.length||0)+' messages';
+    details.append(name,meta);
+    const arrow=document.createElement('span');
+    arrow.className='walmo-nav-chevron';
+    arrow.setAttribute('aria-hidden','true');
+    arrow.textContent='›';
+    btn.append(details,arrow);
+    btn.addEventListener('click',function(){
+      document.dispatchEvent(new CustomEvent('walmo:open-saved-chat',{detail:{id:chat.id}}));
+      close();
+    });
+    return btn;
+  }
+  function renderPersonalize(){
+    const form=document.createElement('form');
+    form.className='walmo-preferences-form';
+    const current=preferences();
+    function choice(labelText,values,selected){
+      const label=document.createElement('label');
+      label.textContent=labelText;
+      const select=document.createElement('select');
+      values.forEach(function(value){
+        const option=document.createElement('option');
+        option.value=value;
+        option.textContent=value;
+        select.appendChild(option);
+      });
+      select.value=selected;
+      label.appendChild(select);
+      return {label,select};
+    }
+    const tone=choice('Reply Tone',['Friendly','Default','Expert'],current.tone);
+    const length=choice('Reply Length',['Balanced','Detailed','Short'],current.length);
+    const save=document.createElement('button');
+    save.type='submit';
+    save.textContent='Save Preferences';
+    save.setAttribute('aria-live','polite');
+    form.append(tone.label,length.label,save);
+    let feedbackTimer;
+    form.addEventListener('submit',function(e){
+      e.preventDefault();
+      clearTimeout(feedbackTimer);
+      try{
+        localStorage.setItem(preferenceKey,JSON.stringify({tone:tone.select.value,length:length.select.value}));
+        save.textContent='Saved';
+      }catch(error){save.textContent='Could not save';}
+      feedbackTimer=setTimeout(function(){save.textContent='Save Preferences';},1800);
+    });
+    content.appendChild(form);
+  }
+  function renderTrash(){
+    const toolbar=document.createElement('div');
+    toolbar.className='walmo-trash-toolbar';
+    const emptyButton=document.createElement('button');
+    emptyButton.type='button';
+    emptyButton.textContent='Empty Trash';
+    toolbar.appendChild(emptyButton);
+    const list=document.createElement('div');
+    list.className='walmo-nav-list walmo-trash-list';
+    content.append(toolbar,list);
+    emptyButton.addEventListener('click',()=>{
+      const count=list.querySelectorAll('.walmo-trash-item').length;
+      if(!count || !window.confirm('Permanently delete all '+count+' chats in Trash? This cannot be undone.')) return;
+      document.dispatchEvent(new Event('walmo:empty-trash'));
+      update();
+    });
+    function update(){
+      let items=[];
+      try{
+        const value=JSON.parse(localStorage.getItem(trashKey)||'[]');
+        if(Array.isArray(value)) items=value.filter(entry=>entry && entry.chat && entry.chat.id && Number(entry.deletedAt)>Date.now()-trashLifetime);
+        if(Array.isArray(value) && items.length!==value.length) localStorage.setItem(trashKey,JSON.stringify(items));
+      }catch(e){}
+      list.replaceChildren();
+      toolbar.hidden=!items.length;
+      if(!items.length){list.appendChild(empty('Trash Is Empty'));return;}
+      items.sort((a,b)=>b.deletedAt-a.deletedAt).forEach(entry=>{
+        const row=document.createElement('div');
+        row.className='walmo-trash-item';
+        const title=document.createElement('strong');
+        title.textContent=String(entry.chat.title||'Untitled chat').replace(/(^|[\s\-–—/])([a-z])/gi,(_,separator,letter)=>separator+letter.toUpperCase());
+        const remaining=Math.max(1,Math.ceil((trashLifetime-(Date.now()-entry.deletedAt))/(24*60*60*1000)));
+        const meta=document.createElement('small');
+        meta.textContent=remaining+' '+(remaining===1?'Day':'Days')+' Left';
+        const actions=document.createElement('div');
+        actions.className='walmo-trash-actions';
+        const restore=document.createElement('button');
+        restore.type='button';restore.textContent='Restore';
+        restore.addEventListener('click',()=>{document.dispatchEvent(new CustomEvent('walmo:restore-chat',{detail:{id:entry.chat.id}}));update();});
+        const remove=document.createElement('button');
+        remove.type='button';remove.textContent='Delete Forever';remove.className='walmo-trash-delete';
+        remove.addEventListener('click',()=>{
+          if(!window.confirm('Permanently delete this chat? This cannot be undone.')) return;
+          document.dispatchEvent(new CustomEvent('walmo:delete-trashed-chat',{detail:{id:entry.chat.id}}));update();
+        });
+        actions.append(restore,remove);row.append(title,meta,actions);list.appendChild(row);
+      });
+    }
+    update();
+  }
+  function renderSearch(){
+    const input=document.createElement('input');
+    input.className='walmo-nav-search';
+    input.type='search';
+    input.placeholder='Search Your Chats';
+    input.setAttribute('aria-label','Search Your Chats');
+    const results=document.createElement('div');
+    results.className='walmo-nav-list';
+    content.append(input,results);
+    function update(){
+      const query=input.value.trim().toLocaleLowerCase();
+      const matches=savedChats().filter(c=>!query || String(c.title||'').toLocaleLowerCase().includes(query) || c.messages.some(m=>String(m.content||'').toLocaleLowerCase().includes(query)));
+      results.replaceChildren();
+      if(!matches.length) results.appendChild(empty(query?'No matching chats found.':'No saved chats yet.'));
+      else matches.forEach(c=>results.appendChild(chatButton(c)));
+    }
+    input.addEventListener('input',update);
+    update();
+    input.focus();
+  }
+  for(const [id,name] of [['walmoNavPersonalize','Personalize'],['walmoNavSearch','Search'],['walmoNavTrash','Trash']]){
+    document.getElementById(id)?.addEventListener('click',function(){open(name,this);});
+  }
+  closeButton.addEventListener('click',close);
+  overlay.addEventListener('click',function(e){if(e.target===overlay) close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape' && overlay.classList.contains('open')) close();});
+});
+</script>
+<script src="/google-auth.js"></script>
+<script>
+(function(){
+  const area=document.querySelector('.wallet-area');
+  const wrap=area?.querySelector('.wallet-wrap');
+  const label=document.getElementById('walletStatusLabel');
+  const address=document.getElementById('walletAddress');
+  const logoutButton=document.getElementById('walletLogoutBtn');
+  const loginOverlay=document.getElementById('walmoLoginOverlay');
+  if(!wrap||!label) return;
+  function closeLogin(){loginOverlay.classList.remove('open');loginOverlay.setAttribute('aria-hidden','true');}
+  wrap.addEventListener('click',function(event){
+    if(area.classList.contains('is-connected')) return;
+    event.preventDefault();
+    if(document.body.classList.contains('walmo-google-signed-in')) return;
+    loginOverlay.classList.add('open');
+    loginOverlay.setAttribute('aria-hidden','false');
+  });
+  loginOverlay.addEventListener('click',event=>{if(event.target===loginOverlay) closeLogin();});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape') closeLogin();});
+  logoutButton?.addEventListener('click',async function(){
+    if(!area.classList.contains('is-google-connected') || area.classList.contains('is-connected')) return;
+    this.disabled=true;
+    try{await window.walmoGoogleLogout?.();}
+    catch{this.disabled=false;}
+  });
+  function sync(){
+    const walletConnected=area.classList.contains('is-connected');
+    const googleConnected=document.body.classList.contains('walmo-google-signed-in');
+    area.classList.toggle('is-google-connected',googleConnected&&!walletConnected);
+    if(walletConnected) return;
+    label.textContent='Login';
+    if(!address||!logoutButton) return;
+    if(googleConnected){
+      address.textContent='Google';
+      address.title='Google account';
+      address.hidden=false;
+      logoutButton.hidden=false;
+      logoutButton.disabled=false;
+      logoutButton.setAttribute('aria-label','Log out Google account');
+    }else{
+      address.hidden=true;
+      logoutButton.hidden=true;
+    }
+  }
+  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('walmo:google-session',sync);
+  sync();
+})();
+</script>
+</body>
+</html>
+
+
+
+
